@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Minus } from 'lucide-react';
+import { Plus, Minus, Trash2, Edit2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { getUserTransactions, getUserCategories, addTransaction, subscribeToTransactions, unsubscribe } from '../lib/database';
+import { getUserTransactions, getUserCategories, addTransaction, updateTransaction, deleteTransaction, subscribeToTransactions, unsubscribe } from '../lib/database';
 import GenericModal from '../components/GenericModal';
 
 const Budget = ({ theme }) => {
@@ -20,11 +20,36 @@ const Budget = ({ theme }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Context menu states
+  const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, entry: null });
+  const [editingEntry, setEditingEntry] = useState(null);
+  const longPressTimer = useRef(null);
+  const contextMenuRef = useRef(null);
+
   const tabs = [
     { id: 'income', label: t('income') },
     { id: 'all', label: t('all') },
     { id: 'expense', label: t('expense') }
   ];
+
+  // Close context menu on click outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(event.target)) {
+        setContextMenu({ visible: false, x: 0, y: 0, entry: null });
+      }
+    };
+
+    if (contextMenu.visible) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [contextMenu.visible]);
 
   // Load data from database
   useEffect(() => {
@@ -74,15 +99,27 @@ const Budget = ({ theme }) => {
     }
   };
 
-  const openModal = (type) => {
+  const openModal = (type, entry = null) => {
     setModalType(type);
-    setFormTitle('');
-    setFormAmount('');
+    setEditingEntry(entry);
+
+    if (entry) {
+      // Düzenleme modu
+      setFormTitle(entry.title);
+      setFormAmount(entry.amount.toString());
+      setFormCategory(entry.category || '');
+    } else {
+      // Yeni ekleme modu
+      setFormTitle('');
+      setFormAmount('');
+      setFormCategory('');
+    }
+
     setError('');
 
     // Kategorileri yeniden yükle
     loadCategories().then(() => {
-      if (type === 'expense' && categories.length > 0) {
+      if (type === 'expense' && categories.length > 0 && !entry) {
         setFormCategory(categories[0].name);
       }
     });
@@ -96,6 +133,7 @@ const Budget = ({ theme }) => {
     setFormAmount('');
     setFormCategory('');
     setError('');
+    setEditingEntry(null);
   };
 
   const handleSubmit = async (e) => {
@@ -112,28 +150,87 @@ const Budget = ({ theme }) => {
       return;
     }
 
-    // GMT+3 timestamp
-    const now = new Date();
-    const gmt3Offset = 3 * 60 * 60 * 1000;
-    const gmt3Time = new Date(now.getTime() + gmt3Offset);
+    if (editingEntry) {
+      // Düzenleme modu
+      const updates = {
+        title: formTitle.trim(),
+        amount: parseFloat(formAmount),
+        category: modalType === 'expense' ? formCategory : null
+      };
 
-    const { data, error } = await addTransaction(
-      user.id,
-      modalType,
-      formTitle.trim(),
-      parseFloat(formAmount),
-      modalType === 'expense' ? formCategory : null,
-      gmt3Time.toISOString()
-    );
+      const { error } = await updateTransaction(editingEntry.id, updates);
+
+      if (error) {
+        setError('İşlem güncellenemedi');
+        console.error(error);
+      } else {
+        closeModal();
+        await loadTransactions();
+      }
+    } else {
+      // Yeni ekleme modu
+      // GMT+3 timestamp
+      const now = new Date();
+      const gmt3Offset = 3 * 60 * 60 * 1000;
+      const gmt3Time = new Date(now.getTime() + gmt3Offset);
+
+      const { data, error } = await addTransaction(
+        user.id,
+        modalType,
+        formTitle.trim(),
+        parseFloat(formAmount),
+        modalType === 'expense' ? formCategory : null,
+        gmt3Time.toISOString()
+      );
+
+      if (error) {
+        setError('İşlem eklenemedi');
+        console.error(error);
+      } else {
+        closeModal();
+        await loadTransactions();
+      }
+    }
+  };
+
+  const handleDeleteEntry = async (entry) => {
+    setContextMenu({ visible: false, x: 0, y: 0, entry: null });
+
+    const { error } = await deleteTransaction(entry.id);
 
     if (error) {
-      setError('İşlem eklenemedi');
-      console.error(error);
+      console.error('Delete error:', error);
+      setError('İşlem silinemedi');
     } else {
-      closeModal();
-      // Realtime subscription otomatik güncelleyecek
-      // Ama fallback olarak manuel yeniden yükle
       await loadTransactions();
+    }
+  };
+
+  const handleEditEntry = (entry) => {
+    setContextMenu({ visible: false, x: 0, y: 0, entry: null });
+    openModal(entry.type, entry);
+  };
+
+  const handleContextMenu = (e, entry) => {
+    e.preventDefault();
+    const x = e.clientX;
+    const y = e.clientY;
+    setContextMenu({ visible: true, x, y, entry });
+  };
+
+  const handleLongPressStart = (e, entry) => {
+    longPressTimer.current = setTimeout(() => {
+      const touch = e.touches[0];
+      const x = touch.clientX;
+      const y = touch.clientY;
+      setContextMenu({ visible: true, x, y, entry });
+    }, 500); // 500ms uzun basma
+  };
+
+  const handleLongPressEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
     }
   };
 
@@ -167,7 +264,15 @@ const Budget = ({ theme }) => {
     return entries.map((entry) => (
       <div
         key={entry.id}
-        className="flex items-center gap-3 py-3 px-4 mb-2 rounded-lg"
+        className={`flex items-center gap-3 py-3 px-4 mb-2 rounded-lg cursor-pointer transition-colors ${
+          theme === 'dark'
+            ? 'hover:bg-zinc-800/50 active:bg-zinc-800/70'
+            : 'hover:bg-gray-100 active:bg-gray-200'
+        }`}
+        onContextMenu={(e) => handleContextMenu(e, entry)}
+        onTouchStart={(e) => handleLongPressStart(e, entry)}
+        onTouchEnd={handleLongPressEnd}
+        onTouchMove={handleLongPressEnd}
       >
         {/* Color indicator for expenses */}
         {(type === 'expense' || entry.type === 'expense') && entry.category && (
@@ -462,11 +567,54 @@ const Budget = ({ theme }) => {
         {renderContent()}
       </div>
 
+      {/* Context Menu */}
+      {contextMenu.visible && contextMenu.entry && (
+        <div
+          ref={contextMenuRef}
+          className={`fixed z-50 py-2 rounded-lg shadow-xl border min-w-[160px] ${
+            theme === 'dark'
+              ? 'bg-zinc-800 border-zinc-700'
+              : 'bg-white border-gray-200'
+          }`}
+          style={{
+            left: `${contextMenu.x}px`,
+            top: `${contextMenu.y}px`,
+          }}
+        >
+          <button
+            onClick={() => handleEditEntry(contextMenu.entry)}
+            className={`w-full px-4 py-2.5 text-left flex items-center gap-3 transition-colors ${
+              theme === 'dark'
+                ? 'text-zinc-300 hover:bg-zinc-700'
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <Edit2 size={16} />
+            <span>Düzenle</span>
+          </button>
+          <button
+            onClick={() => handleDeleteEntry(contextMenu.entry)}
+            className={`w-full px-4 py-2.5 text-left flex items-center gap-3 transition-colors ${
+              theme === 'dark'
+                ? 'text-red-400 hover:bg-zinc-700'
+                : 'text-red-600 hover:bg-gray-100'
+            }`}
+          >
+            <Trash2 size={16} />
+            <span>Sil</span>
+          </button>
+        </div>
+      )}
+
       {/* Modal */}
       <GenericModal
         isOpen={isModalOpen}
         onClose={closeModal}
-        title={modalType === 'income' ? t('addIncome') : t('addExpense')}
+        title={
+          editingEntry
+            ? modalType === 'income' ? 'Geliri Düzenle' : 'Gideri Düzenle'
+            : modalType === 'income' ? t('addIncome') : t('addExpense')
+        }
         theme={theme}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -563,7 +711,7 @@ const Budget = ({ theme }) => {
                   : 'bg-blue-600 text-white hover:bg-blue-700'
               }`}
             >
-              {t('add')}
+              {editingEntry ? 'Güncelle' : t('add')}
             </button>
           </div>
         </form>

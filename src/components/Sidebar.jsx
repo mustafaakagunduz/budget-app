@@ -125,21 +125,6 @@ const Sidebar = ({ isOpen, onClose, theme, setTheme, currency, setCurrency }) =>
                 <Tags size={20} />
                 {t('expenseCategories')}
               </button>
-
-              {/* Logout Button - Only show if user is logged in */}
-              {user && (
-                <button
-                  onClick={handleLogout}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    theme === 'dark'
-                      ? 'text-red-400 hover:bg-red-500/10 border border-red-500/20'
-                      : 'text-red-600 hover:bg-red-50 border border-red-200'
-                  }`}
-                >
-                  <LogOut size={20} />
-                  Çıkış Yap
-                </button>
-              )}
             </nav>
 
             {/* Language Selector - Collapsible */}
@@ -295,6 +280,25 @@ const Sidebar = ({ isOpen, onClose, theme, setTheme, currency, setCurrency }) =>
               </div>
             </div>
           </div>
+
+          {/* Logout Button - Bottom */}
+          {user && (
+            <div className={`p-4 border-t ${
+              theme === 'dark' ? 'border-zinc-700' : 'border-gray-200'
+            }`}>
+              <button
+                onClick={handleLogout}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  theme === 'dark'
+                    ? 'text-red-400 hover:bg-red-500/10 border border-red-500/20'
+                    : 'text-red-600 hover:bg-red-50 border border-red-200'
+                }`}
+              >
+                <LogOut size={20} />
+                Çıkış Yap
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </>
