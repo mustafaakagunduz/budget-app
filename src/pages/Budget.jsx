@@ -23,8 +23,12 @@ const Budget = ({ theme }) => {
   // Context menu states
   const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, entry: null });
   const [editingEntry, setEditingEntry] = useState(null);
-  const longPressTimer = useRef(null);
   const contextMenuRef = useRef(null);
+
+  // Swipe states
+  const [swipedEntry, setSwipedEntry] = useState(null);
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchCurrent, setTouchCurrent] = useState(null);
 
   const tabs = [
     { id: 'income', label: t('income') },
@@ -218,20 +222,54 @@ const Budget = ({ theme }) => {
     setContextMenu({ visible: true, x, y, entry });
   };
 
-  const handleLongPressStart = (e, entry) => {
-    longPressTimer.current = setTimeout(() => {
-      const touch = e.touches[0];
-      const x = touch.clientX;
-      const y = touch.clientY;
-      setContextMenu({ visible: true, x, y, entry });
-    }, 500); // 500ms uzun basma
+  const handleTouchStart = (e, entry) => {
+    const touch = e.touches[0];
+    setTouchStart({ x: touch.clientX, y: touch.clientY, entry });
+    setTouchCurrent({ x: touch.clientX, y: touch.clientY });
   };
 
-  const handleLongPressEnd = () => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
+  const handleTouchMove = (e, entry) => {
+    if (!touchStart) return;
+
+    const touch = e.touches[0];
+    setTouchCurrent({ x: touch.clientX, y: touch.clientY });
+
+    const deltaX = touchStart.x - touch.clientX;
+    const deltaY = Math.abs(touchStart.y - touch.clientY);
+
+    // Yatay kaydırma yeterince büyükse ve dikey kaydırma küçükse
+    if (Math.abs(deltaX) > 10 && deltaY < 30) {
+      e.preventDefault(); // Scroll'u engelle
     }
+  };
+
+  const handleTouchEnd = (e, entry) => {
+    if (!touchStart || !touchCurrent) {
+      setTouchStart(null);
+      setTouchCurrent(null);
+      return;
+    }
+
+    const deltaX = touchStart.x - touchCurrent.x;
+    const deltaY = Math.abs(touchStart.y - touchCurrent.y);
+
+    // Sola kaydırma (deltaX > 0) ve dikey hareket küçük
+    if (deltaX > 50 && deltaY < 30) {
+      setSwipedEntry(entry.id);
+    }
+    // Sağa kaydırma - kapat
+    else if (deltaX < -50 && deltaY < 30) {
+      setSwipedEntry(null);
+    }
+    // Küçük hareket - toggle
+    else if (Math.abs(deltaX) < 10 && deltaY < 10) {
+      if (swipedEntry === entry.id) {
+        setSwipedEntry(null);
+      }
+    }
+
+    setTouchStart(null);
+    setTouchCurrent(null);
   };
 
   const getAllEntries = () => {
@@ -261,49 +299,92 @@ const Budget = ({ theme }) => {
   };
 
   const renderEntries = (entries, type) => {
-    return entries.map((entry) => (
-      <div
-        key={entry.id}
-        className={`flex items-center gap-3 py-3 px-4 mb-2 rounded-lg cursor-pointer transition-colors ${
-          theme === 'dark'
-            ? 'hover:bg-zinc-800/50 active:bg-zinc-800/70'
-            : 'hover:bg-gray-100 active:bg-gray-200'
-        }`}
-        onContextMenu={(e) => handleContextMenu(e, entry)}
-        onTouchStart={(e) => handleLongPressStart(e, entry)}
-        onTouchEnd={handleLongPressEnd}
-        onTouchMove={handleLongPressEnd}
-      >
-        {/* Color indicator for expenses */}
-        {(type === 'expense' || entry.type === 'expense') && entry.category && (
+    return entries.map((entry) => {
+      const isSwipedOpen = swipedEntry === entry.id;
+      const swipeOffset = isSwipedOpen ? -140 : 0;
+
+      return (
+        <div
+          key={entry.id}
+          className="relative mb-2 overflow-hidden rounded-lg"
+        >
+          {/* Action buttons - behind the row */}
           <div
-            className="w-1.5 h-12 rounded-full"
-            style={{ backgroundColor: getCategoryColor(entry.category) }}
-          />
-        )}
-        <div className="flex-1">
-          <div className={`text-lg ${
-            theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'
-          }`}>
-            {entry.title}
+            className={`absolute right-0 top-0 bottom-0 flex items-center gap-2 pr-2 md:hidden transition-opacity ${
+              isSwipedOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+            }`}
+          >
+            <button
+              onClick={() => handleEditEntry(entry)}
+              className={`h-full px-5 rounded-lg font-medium transition-colors ${
+                theme === 'dark'
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                  : 'bg-blue-500 hover:bg-blue-600 text-white'
+              }`}
+            >
+              <Edit2 size={18} />
+            </button>
+            <button
+              onClick={() => handleDeleteEntry(entry)}
+              className={`h-full px-5 rounded-lg font-medium transition-colors ${
+                theme === 'dark'
+                  ? 'bg-red-600 hover:bg-red-700 text-white'
+                  : 'bg-red-500 hover:bg-red-600 text-white'
+              }`}
+            >
+              <Trash2 size={18} />
+            </button>
           </div>
-          {entry.category && (
-            <div className={`text-xs mt-1 ${
-              theme === 'dark' ? 'text-zinc-500' : 'text-gray-400'
-            }`}>
-              {entry.category}
+
+          {/* Main row - slides left to reveal actions */}
+          <div
+            className={`relative flex items-center gap-3 py-3 px-4 rounded-lg cursor-pointer transition-all ${
+              theme === 'dark'
+                ? 'bg-zinc-900/40 hover:bg-zinc-800/50 active:bg-zinc-800/70'
+                : 'bg-white/60 hover:bg-gray-100 active:bg-gray-200'
+            }`}
+            style={{
+              transform: `translateX(${swipeOffset}px)`,
+              transition: touchStart ? 'none' : 'transform 0.3s ease-out',
+              zIndex: 10,
+            }}
+            onContextMenu={(e) => handleContextMenu(e, entry)}
+            onTouchStart={(e) => handleTouchStart(e, entry)}
+            onTouchMove={(e) => handleTouchMove(e, entry)}
+            onTouchEnd={(e) => handleTouchEnd(e, entry)}
+          >
+            {/* Color indicator for expenses */}
+            {(type === 'expense' || entry.type === 'expense') && entry.category && (
+              <div
+                className="w-1.5 h-12 rounded-full"
+                style={{ backgroundColor: getCategoryColor(entry.category) }}
+              />
+            )}
+            <div className="flex-1">
+              <div className={`text-lg ${
+                theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'
+              }`}>
+                {entry.title}
+              </div>
+              {entry.category && (
+                <div className={`text-xs mt-1 ${
+                  theme === 'dark' ? 'text-zinc-500' : 'text-gray-400'
+                }`}>
+                  {entry.category}
+                </div>
+              )}
             </div>
-          )}
+            <span className={`font-semibold ${
+              type === 'income' || entry.type === 'income'
+                ? 'text-green-500'
+                : 'text-red-500'
+            }`}>
+              {parseFloat(entry.amount).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺
+            </span>
+          </div>
         </div>
-        <span className={`font-semibold ${
-          type === 'income' || entry.type === 'income'
-            ? 'text-green-500'
-            : 'text-red-500'
-        }`}>
-          {parseFloat(entry.amount).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺
-        </span>
-      </div>
-    ));
+      );
+    });
   };
 
   const renderContent = () => {
