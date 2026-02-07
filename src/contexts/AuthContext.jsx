@@ -18,11 +18,99 @@ export const AuthProvider = ({ children }) => {
 
   // Sayfa yüklendiğinde kullanıcıyı kontrol et
   useEffect(() => {
-    checkUser();
+    let isMounted = true;
+
+    const init = async () => {
+      setLoading(true);
+      await checkUser();
+      if (isMounted) {
+        setLoading(false);
+      }
+    };
+
+    init();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!isMounted) return;
+
+      if (event === 'SIGNED_IN' && session?.user?.email) {
+        const { data, error } = await getOrCreateOAuthUser(session.user.email);
+        if (!error && data) {
+          setUser(data);
+        }
+      }
+
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      authListener?.subscription?.unsubscribe();
+    };
   }, []);
+
+  const getOrCreateOAuthUser = async (email) => {
+    try {
+      const { data: existingUser, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (error) {
+        console.error('OAuth user lookup error:', error);
+        return { error: 'Kullanıcı bilgisi alınamadı' };
+      }
+
+      if (existingUser) {
+        if (!existingUser.is_verified) {
+          const { data: updatedUser, error: updateError } = await supabase
+            .from('users')
+            .update({ is_verified: true })
+            .eq('id', existingUser.id)
+            .select()
+            .single();
+
+          if (updateError) {
+            return { error: 'Kullanıcı güncellenemedi' };
+          }
+
+          return { data: updatedUser };
+        }
+
+        return { data: existingUser };
+      }
+
+      const randomPassword = crypto.randomUUID();
+      const passwordHash = await bcrypt.hash(randomPassword, 10);
+
+      const { data: newUser, error: insertError } = await supabase
+        .from('users')
+        .insert({
+          email,
+          password_hash: passwordHash,
+          is_verified: true
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        return { error: 'Google ile giriş sırasında kullanıcı oluşturulamadı' };
+      }
+
+      return { data: newUser };
+    } catch (error) {
+      console.error('OAuth user error:', error);
+      return { error: 'Beklenmeyen bir hata oluştu' };
+    }
+  };
 
   const checkUser = async () => {
     try {
+      let currentUser = null;
+
       // LocalStorage'dan remember token kontrol et
       const rememberToken = localStorage.getItem('rememberToken');
 
@@ -36,15 +124,31 @@ export const AuthProvider = ({ children }) => {
           .single();
 
         if (data && !error) {
-          setUser(data);
+          currentUser = data;
         } else {
           localStorage.removeItem('rememberToken');
         }
       }
+
+      if (!currentUser) {
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        if (!sessionError && sessionData?.session?.user?.email) {
+          const { data: oauthUser, error: oauthError } = await getOrCreateOAuthUser(
+            sessionData.session.user.email
+          );
+          if (!oauthError && oauthUser) {
+            currentUser = oauthUser;
+          }
+        }
+      }
+
+      if (currentUser) {
+        setUser(currentUser);
+      } else {
+        setUser(null);
+      }
     } catch (error) {
       console.error('Check user error:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -198,9 +302,31 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const loginWithGoogle = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/login`
+        }
+      });
+
+      if (error) {
+        return { error: 'Google ile giriş başlatılamadı' };
+      }
+
+      return { data: { started: true } };
+    } catch (error) {
+      console.error('Google login error:', error);
+      return { error: 'Beklenmeyen bir hata oluştu' };
+    }
+  };
+
   // Logout
   const logout = async () => {
     try {
+      await supabase.auth.signOut();
+
       // Remember token'ı temizle
       if (user?.remember_token) {
         await supabase
@@ -314,6 +440,7 @@ export const AuthProvider = ({ children }) => {
     signup,
     verifyEmail,
     login,
+    loginWithGoogle,
     logout,
     forgotPassword,
     verifyResetCode,
