@@ -895,25 +895,33 @@ const Budget = ({ theme }) => {
                 }`}>
                   {t('paymentMethod')}
                 </label>
-                <select
-                  value={formCategory}
-                  onChange={(e) => setFormCategory(e.target.value)}
-                  className={`w-full px-3 py-2 rounded-lg border ${
-                    theme === 'dark'
-                      ? 'bg-zinc-800 border-zinc-700 text-white'
-                      : 'bg-white border-gray-300 text-gray-900'
-                  } focus:outline-none focus:ring-2 focus:ring-cyan-400`}
-                >
-                  {categories.length === 0 ? (
-                    <option value="">Ödeme yöntemi yok</option>
-                  ) : (
-                    categories.map((cat) => (
-                      <option key={cat.id} value={cat.name}>
-                        {cat.name}
-                      </option>
-                    ))
-                  )}
-                </select>
+                <div className="relative">
+                  <select
+                    value={formCategory}
+                    onChange={(e) => setFormCategory(e.target.value)}
+                    className={`w-full px-4 py-3 rounded-lg border appearance-none cursor-pointer ${
+                      theme === 'dark'
+                        ? 'bg-zinc-800 border-zinc-700 text-white'
+                        : 'bg-white border-gray-300 text-gray-900'
+                    } focus:outline-none focus:ring-2 focus:ring-cyan-400 transition-all`}
+                  >
+                    {categories.length === 0 ? (
+                      <option value="">Ödeme yöntemi yok</option>
+                    ) : (
+                      categories.map((cat) => (
+                        <option key={cat.id} value={cat.name}>
+                          {cat.name}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                  <ChevronDown
+                    size={20}
+                    className={`absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none ${
+                      theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'
+                    }`}
+                  />
+                </div>
               </div>
 
               <div>
@@ -922,33 +930,59 @@ const Budget = ({ theme }) => {
                 }`}>
                   {t('expenseType')}
                 </label>
-                <div className="flex gap-4">
-                  <label className={`flex items-center cursor-pointer ${
-                    theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'
-                  }`}>
-                    <input
-                      type="radio"
-                      name="expenseType"
-                      value="necessary"
-                      checked={formExpenseType === 'necessary'}
-                      onChange={(e) => setFormExpenseType(e.target.value)}
-                      className="mr-2 accent-blue-500"
-                    />
-                    {t('necessary')}
-                  </label>
-                  <label className={`flex items-center cursor-pointer ${
-                    theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'
-                  }`}>
-                    <input
-                      type="radio"
-                      name="expenseType"
-                      value="optional"
-                      checked={formExpenseType === 'optional'}
-                      onChange={(e) => setFormExpenseType(e.target.value)}
-                      className="mr-2 accent-pink-500"
-                    />
-                    {t('optional')}
-                  </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setFormExpenseType('necessary')}
+                    className={`relative py-3 px-4 rounded-lg border-2 transition-all font-medium ${
+                      formExpenseType === 'necessary'
+                        ? theme === 'dark'
+                          ? 'border-blue-500 bg-blue-500/10 text-blue-400'
+                          : 'border-blue-500 bg-blue-50 text-blue-600'
+                        : theme === 'dark'
+                          ? 'border-zinc-700 bg-zinc-800/40 text-zinc-400 hover:border-zinc-600'
+                          : 'border-gray-300 bg-white text-gray-600 hover:border-gray-400'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                        formExpenseType === 'necessary'
+                          ? 'border-blue-500'
+                          : theme === 'dark' ? 'border-zinc-600' : 'border-gray-400'
+                      }`}>
+                        {formExpenseType === 'necessary' && (
+                          <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                        )}
+                      </div>
+                      {t('necessary')}
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormExpenseType('optional')}
+                    className={`relative py-3 px-4 rounded-lg border-2 transition-all font-medium ${
+                      formExpenseType === 'optional'
+                        ? theme === 'dark'
+                          ? 'border-pink-500 bg-pink-500/10 text-pink-400'
+                          : 'border-pink-500 bg-pink-50 text-pink-600'
+                        : theme === 'dark'
+                          ? 'border-zinc-700 bg-zinc-800/40 text-zinc-400 hover:border-zinc-600'
+                          : 'border-gray-300 bg-white text-gray-600 hover:border-gray-400'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                        formExpenseType === 'optional'
+                          ? 'border-pink-500'
+                          : theme === 'dark' ? 'border-zinc-600' : 'border-gray-400'
+                      }`}>
+                        {formExpenseType === 'optional' && (
+                          <div className="w-2 h-2 rounded-full bg-pink-500"></div>
+                        )}
+                      </div>
+                      {t('optional')}
+                    </div>
+                  </button>
                 </div>
               </div>
             </>
