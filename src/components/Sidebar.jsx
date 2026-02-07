@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Sun, Moon, ChevronDown, Home, ArrowUpDown, TrendingUp, Tags, LogOut } from 'lucide-react';
+import { X, Sun, Moon, ChevronDown, Home, ArrowUpDown, TrendingUp, Tags, LogOut, CreditCard } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -125,7 +125,23 @@ const Sidebar = ({ isOpen, onClose, theme, setTheme, currency, setCurrency }) =>
                 <Tags size={20} />
                 {t('paymentMethods')}
               </button>
+              <button
+                onClick={() => handleNavigate('/ibans')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  theme === 'dark' ? 'text-zinc-300 hover:bg-zinc-700' : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <CreditCard size={20} />
+                {t('ibanInfo')}
+              </button>
             </nav>
+
+            {/* Saved IBANs Section */}
+            <div className={`mb-6 px-4 py-2 ${
+              theme === 'dark' ? 'text-zinc-500 text-xs' : 'text-gray-400 text-xs'
+            }`}>
+              {t('savedIbans')}
+            </div>
 
             {/* Language Selector - Collapsible */}
             <div className="mb-6">

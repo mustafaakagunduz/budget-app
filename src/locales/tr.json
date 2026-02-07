@@ -37,5 +37,13 @@
   "addCategory": "Kategori Ekle",
   "other": "Diğer",
   "investmentsPage": "Yatırımlar sayfası",
-  "color": "Renk"
+  "color": "Renk",
+  "ibanInfo": "IBAN Bilgileri",
+  "savedIbans": "Kayıtlı İbanlar",
+  "ibanNumber": "IBAN Numarası",
+  "name": "İsim",
+  "bank": "Banka",
+  "addIban": "IBAN Ekle",
+  "copy": "Kopyala",
+  "copied": "Kopyalandı"
 }

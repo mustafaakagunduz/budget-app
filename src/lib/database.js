@@ -299,3 +299,88 @@ export function unsubscribe(subscription) {
     supabase.removeChannel(subscription);
   }
 }
+
+// =============================================
+// IBANS
+// =============================================
+
+/**
+ * Kullanıcının tüm IBAN'larını getir
+ */
+export async function getUserIbans(userId) {
+  try {
+    const { data, error } = await supabase
+      .from('ibans')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('Get IBANs error:', error);
+    return { data: null, error: error.message };
+  }
+}
+
+/**
+ * Yeni IBAN ekle
+ */
+export async function addIban(userId, name, bank, ibanNumber) {
+  try {
+    const { data, error } = await supabase
+      .from('ibans')
+      .insert({
+        user_id: userId,
+        name,
+        bank,
+        iban_number: ibanNumber
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('Add IBAN error:', error);
+    return { data: null, error: error.message };
+  }
+}
+
+/**
+ * IBAN güncelle
+ */
+export async function updateIban(ibanId, updates) {
+  try {
+    const { data, error } = await supabase
+      .from('ibans')
+      .update(updates)
+      .eq('id', ibanId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('Update IBAN error:', error);
+    return { data: null, error: error.message };
+  }
+}
+
+/**
+ * IBAN sil
+ */
+export async function deleteIban(ibanId) {
+  try {
+    const { error } = await supabase
+      .from('ibans')
+      .delete()
+      .eq('id', ibanId);
+
+    if (error) throw error;
+    return { error: null };
+  } catch (error) {
+    console.error('Delete IBAN error:', error);
+    return { error: error.message };
+  }
+}

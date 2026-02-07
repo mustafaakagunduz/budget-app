@@ -9,6 +9,7 @@ import Home from './pages/Home';
 import Budget from './pages/Budget';
 import Investments from './pages/Investments';
 import PaymentMethods from './pages/PaymentMethods';
+import Ibans from './pages/Ibans';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import VerifyEmail from './pages/VerifyEmail';
@@ -84,6 +85,14 @@ function AppContent({ theme, setTheme, currency, setCurrency, sidebarOpen, setSi
             element={
               <ProtectedRoute>
                 <PaymentMethods theme={theme} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/ibans"
+            element={
+              <ProtectedRoute>
+                <Ibans theme={theme} />
               </ProtectedRoute>
             }
           />

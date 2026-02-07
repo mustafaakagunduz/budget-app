@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Minus, Trash2, Edit2 } from 'lucide-react';
+import { Plus, Minus, Trash2, Edit2, ChevronDown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserTransactions, getUserCategories, addTransaction, updateTransaction, deleteTransaction, subscribeToTransactions, unsubscribe } from '../lib/database';
 import GenericModal from '../components/GenericModal';
@@ -22,6 +22,8 @@ const Budget = ({ theme }) => {
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, entry: null });
   const [deleteError, setDeleteError] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [groupByPaymentMethod, setGroupByPaymentMethod] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState(new Set());
 
   // Context menu states
   const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, entry: null });
@@ -321,6 +323,36 @@ const Budget = ({ theme }) => {
     return category?.color || '#d1d5db';
   };
 
+  const calculatePaymentMethodTotals = (expenses) => {
+    const totals = {};
+
+    expenses.forEach(expense => {
+      const category = expense.category || 'Diğer';
+      if (!totals[category]) {
+        totals[category] = 0;
+      }
+      totals[category] += parseFloat(expense.amount);
+    });
+
+    return totals;
+  };
+
+  const toggleCategory = (categoryName) => {
+    setExpandedCategories(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(categoryName)) {
+        newSet.delete(categoryName);
+      } else {
+        newSet.add(categoryName);
+      }
+      return newSet;
+    });
+  };
+
+  const getExpensesByCategory = (expenses, categoryName) => {
+    return expenses.filter(expense => (expense.category || 'Diğer') === categoryName);
+  };
+
   const renderEntries = (entries, type) => {
     return entries.map((entry) => {
       const isSwipedOpen = swipedEntry === entry.id;
@@ -376,13 +408,6 @@ const Budget = ({ theme }) => {
             onTouchMove={(e) => handleTouchMove(e, entry)}
             onTouchEnd={(e) => handleTouchEnd(e, entry)}
           >
-            {/* Color indicator for expenses */}
-            {(type === 'expense' || entry.type === 'expense') && entry.category && (
-              <div
-                className="w-1.5 h-12 rounded-full"
-                style={{ backgroundColor: getCategoryColor(entry.category) }}
-              />
-            )}
             <div className="flex-1">
               <div className={`text-lg ${
                 theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'
@@ -526,6 +551,28 @@ const Budget = ({ theme }) => {
                   </span>
                 </div>
               </div>
+
+              {/* Group by Payment Method Checkbox */}
+              <div className={`mb-4 p-3 rounded-lg flex items-center gap-3 cursor-pointer transition-colors ${
+                theme === 'dark'
+                  ? 'bg-zinc-900/40 hover:bg-zinc-800/50'
+                  : 'bg-white/60 hover:bg-gray-100'
+              }`}
+              onClick={() => setGroupByPaymentMethod(!groupByPaymentMethod)}
+              >
+                <input
+                  type="checkbox"
+                  checked={groupByPaymentMethod}
+                  onChange={(e) => setGroupByPaymentMethod(e.target.checked)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-4 h-4 rounded cursor-pointer accent-cyan-500"
+                />
+                <label className={`text-sm font-medium cursor-pointer select-none ${
+                  theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'
+                }`}>
+                  Ödeme Yöntemine Göre Grupla
+                </label>
+              </div>
             </>
           )}
 
@@ -554,7 +601,66 @@ const Budget = ({ theme }) => {
             </div>
           ) : (
             <div>
-              {renderEntries(expenses, 'expense')}
+              {groupByPaymentMethod ? (
+                // Grouped by payment method - collapsible
+                (() => {
+                  const totals = calculatePaymentMethodTotals(expenses);
+                  return Object.keys(totals).map(categoryName => {
+                    const categoryTotal = totals[categoryName];
+                    const categoryColor = getCategoryColor(categoryName);
+                    const isExpanded = expandedCategories.has(categoryName);
+                    const categoryExpenses = getExpensesByCategory(expenses, categoryName);
+
+                    return (
+                      <div key={categoryName} className="mb-2">
+                        {/* Header Row */}
+                        <div
+                          onClick={() => toggleCategory(categoryName)}
+                          className={`relative flex items-center gap-3 py-3 px-4 rounded-lg cursor-pointer transition-colors ${
+                            theme === 'dark'
+                              ? 'bg-zinc-900/40 hover:bg-zinc-800/50'
+                              : 'bg-white/60 hover:bg-gray-100'
+                          }`}
+                        >
+                          <div
+                            className="w-5 h-5 rounded-full flex items-center justify-center relative"
+                            style={{ backgroundColor: categoryColor }}
+                          >
+                            <ChevronDown
+                              size={14}
+                              className={`transition-transform ${
+                                isExpanded ? 'rotate-180' : ''
+                              } ${
+                                theme === 'dark' ? 'text-cyan-400' : 'text-blue-600'
+                              }`}
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <div className={`text-lg ${
+                              theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'
+                            }`}>
+                              {categoryName}
+                            </div>
+                          </div>
+                          <span className="font-semibold text-red-500">
+                            {categoryTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺
+                          </span>
+                        </div>
+
+                        {/* Expanded Content */}
+                        {isExpanded && (
+                          <div className="mt-2 ml-8">
+                            {renderEntries(categoryExpenses, 'expense')}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  });
+                })()
+              ) : (
+                // Normal list
+                renderEntries(expenses, 'expense')
+              )}
             </div>
           )}
         </>
