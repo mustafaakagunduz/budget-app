@@ -153,7 +153,7 @@ const Budget = ({ theme }) => {
     }
 
     if (modalType === 'expense' && !formCategory) {
-      setError('Kategori seçin');
+      setError('Ödeme yöntemi seçin');
       return;
     }
 
@@ -771,7 +771,7 @@ const Budget = ({ theme }) => {
               <label className={`block text-sm font-medium mb-2 ${
                 theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'
               }`}>
-                {t('category')}
+                {t('paymentMethod')}
               </label>
               <select
                 value={formCategory}
@@ -783,7 +783,7 @@ const Budget = ({ theme }) => {
                 } focus:outline-none focus:ring-2 focus:ring-cyan-400`}
               >
                 {categories.length === 0 ? (
-                  <option value="">Kategori yok</option>
+                  <option value="">Ödeme yöntemi yok</option>
                 ) : (
                   categories.map((cat) => (
                     <option key={cat.id} value={cat.name}>

@@ -117,13 +117,13 @@ const Sidebar = ({ isOpen, onClose, theme, setTheme, currency, setCurrency }) =>
                 {t('investment')}
               </button>
               <button
-                onClick={() => handleNavigate('/expense-categories')}
+                onClick={() => handleNavigate('/payment-methods')}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                   theme === 'dark' ? 'text-zinc-300 hover:bg-zinc-700' : 'text-gray-700 hover:bg-gray-100'
                 }`}
               >
                 <Tags size={20} />
-                {t('expenseCategories')}
+                {t('paymentMethods')}
               </button>
             </nav>
 

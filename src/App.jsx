@@ -8,7 +8,7 @@ import Sidebar from './components/Sidebar';
 import Home from './pages/Home';
 import Budget from './pages/Budget';
 import Investments from './pages/Investments';
-import ExpenseCategories from './pages/ExpenseCategories';
+import PaymentMethods from './pages/PaymentMethods';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import VerifyEmail from './pages/VerifyEmail';
@@ -80,10 +80,10 @@ function AppContent({ theme, setTheme, currency, setCurrency, sidebarOpen, setSi
             }
           />
           <Route
-            path="/expense-categories"
+            path="/payment-methods"
             element={
               <ProtectedRoute>
-                <ExpenseCategories theme={theme} />
+                <PaymentMethods theme={theme} />
               </ProtectedRoute>
             }
           />

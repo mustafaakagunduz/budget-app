@@ -16,7 +16,7 @@ const COLORS = [
   { name: 'Pink', value: '#ec4899' }
 ];
 
-const ExpenseCategories = ({ theme }) => {
+const PaymentMethods = ({ theme }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [categories, setCategories] = useState([]);
@@ -37,7 +37,7 @@ const ExpenseCategories = ({ theme }) => {
   const [touchStart, setTouchStart] = useState(null);
   const [touchCurrent, setTouchCurrent] = useState(null);
 
-  // Load categories from database
+  // Load payment methods from database
   useEffect(() => {
     if (user?.id) {
       loadCategories();
@@ -49,7 +49,7 @@ const ExpenseCategories = ({ theme }) => {
     if (!user?.id) return;
 
     const subscription = subscribeToCategories(user.id, () => {
-      // Kategoriler değiştiğinde yeniden yükle
+      // Ödeme yöntemleri değiştiğinde yeniden yükle
       loadCategories();
     });
 
@@ -82,7 +82,7 @@ const ExpenseCategories = ({ theme }) => {
     const { data, error } = await getUserCategories(user.id);
 
     if (error) {
-      setError('Kategoriler yüklenemedi');
+      setError('Ödeme yöntemleri yüklenemedi');
       console.error(error);
     } else {
       setCategories(data || []);
@@ -119,14 +119,14 @@ const ExpenseCategories = ({ theme }) => {
     setError('');
 
     if (!categoryName.trim()) {
-      setError('Kategori adı gerekli');
+      setError('Ödeme yöntemi adı gerekli');
       return;
     }
 
-    // Aynı isimde kategori var mı kontrol et
+    // Aynı isimde ödeme yöntemi var mı kontrol et
     const normalizedName = categoryName.trim().toLowerCase();
     if (categories.some(cat => cat.id !== editingCategory?.id && cat.name.toLowerCase() === normalizedName)) {
-      setError('Bu kategori zaten mevcut');
+      setError('Bu ödeme yöntemi zaten mevcut');
       return;
     }
 
@@ -137,7 +137,7 @@ const ExpenseCategories = ({ theme }) => {
       });
 
       if (error) {
-        setError('Kategori güncellenemedi');
+        setError('Ödeme yöntemi güncellenemedi');
         console.error(error);
       } else {
         closeModal();
@@ -147,7 +147,7 @@ const ExpenseCategories = ({ theme }) => {
       const { error } = await addCategory(user.id, categoryName.trim(), selectedColor);
 
       if (error) {
-        setError('Kategori eklenemedi');
+        setError('Ödeme yöntemi eklenemedi');
         console.error(error);
       } else {
         closeModal();
@@ -181,7 +181,7 @@ const ExpenseCategories = ({ theme }) => {
 
     if (error) {
       console.error('Delete category error:', error);
-      setDeleteError('Kategori silinemedi');
+      setDeleteError('Ödeme yöntemi silinemedi');
       setIsDeleting(false);
       return;
     }
@@ -263,7 +263,7 @@ const ExpenseCategories = ({ theme }) => {
         <h1 className={`text-2xl font-bold ${
           theme === 'dark' ? 'text-white' : 'text-gray-900'
         }`}>
-          {t('expenseCategories')}
+          {t('paymentMethods')}
         </h1>
         <button
           onClick={openModal}
@@ -281,7 +281,7 @@ const ExpenseCategories = ({ theme }) => {
       {categories.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">
           <p className={`text-lg ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-            Henüz kategori yok
+            Henüz ödeme yöntemi yok
           </p>
         </div>
       ) : (
@@ -407,7 +407,7 @@ const ExpenseCategories = ({ theme }) => {
       <GenericModal
         isOpen={isModalOpen}
         onClose={closeModal}
-        title={editingCategory ? 'Kategoriyi Düzenle' : t('addCategory')}
+        title={editingCategory ? 'Ödeme Yöntemini Düzenle' : t('addPaymentMethod')}
         theme={theme}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -421,7 +421,7 @@ const ExpenseCategories = ({ theme }) => {
             <label className={`block text-sm font-medium mb-2 ${
               theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'
             }`}>
-              {t('categoryName')}
+              {t('paymentMethodName')}
             </label>
             <input
               type="text"
@@ -496,8 +496,8 @@ const ExpenseCategories = ({ theme }) => {
         <div className="space-y-4">
           <p className={`${theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'}`}>
             {deleteConfirm.category?.name
-              ? `"${deleteConfirm.category.name}" kategorisini silmek istediğinize emin misiniz?`
-              : 'Bu kategoriyi silmek istediğinize emin misiniz?'}
+              ? `"${deleteConfirm.category.name}" ödeme yöntemini silmek istediğinize emin misiniz?`
+              : 'Bu ödeme yöntemini silmek istediğinize emin misiniz?'}
           </p>
 
           {deleteError && (
@@ -538,4 +538,4 @@ const ExpenseCategories = ({ theme }) => {
   );
 };
 
-export default ExpenseCategories;
+export default PaymentMethods;

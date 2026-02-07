@@ -160,7 +160,7 @@ export const AuthProvider = ({ children }) => {
         .from('users')
         .select('id')
         .eq('email', email)
-        .single();
+        .maybeSingle();
 
       if (existingUser) {
         return { error: 'Bu email adresi zaten kayıtlı' };

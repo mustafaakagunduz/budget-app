@@ -1,8 +1,14 @@
 import { supabase } from './supabase';
 
 // =============================================
-// EXPENSE CATEGORIES
+// PAYMENT METHODS
 // =============================================
+
+const DEFAULT_PAYMENT_METHODS = [
+  { name: 'Nakit', color: '#22c55e' },
+  { name: 'Kredi Kartı', color: '#3b82f6' },
+  { name: 'Yemek Kartı', color: '#f97316' }
+];
 
 /**
  * Kullanıcının tüm kategorilerini getir
@@ -10,12 +16,37 @@ import { supabase } from './supabase';
 export async function getUserCategories(userId) {
   try {
     const { data, error } = await supabase
-      .from('expense_categories')
+      .from('payment_methods')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: true });
 
     if (error) throw error;
+
+    if (!data || data.length === 0) {
+      const { error: insertError } = await supabase
+        .from('payment_methods')
+        .insert(
+          DEFAULT_PAYMENT_METHODS.map((method) => ({
+            user_id: userId,
+            name: method.name,
+            color: method.color,
+            is_default: true
+          }))
+        );
+
+      if (insertError) throw insertError;
+
+      const { data: seededData, error: seededError } = await supabase
+        .from('payment_methods')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: true });
+
+      if (seededError) throw seededError;
+      return { data: seededData, error: null };
+    }
+
     return { data, error: null };
   } catch (error) {
     console.error('Get categories error:', error);
@@ -29,7 +60,7 @@ export async function getUserCategories(userId) {
 export async function addCategory(userId, name, color) {
   try {
     const { data, error } = await supabase
-      .from('expense_categories')
+      .from('payment_methods')
       .insert({
         user_id: userId,
         name,
@@ -53,7 +84,7 @@ export async function addCategory(userId, name, color) {
 export async function deleteCategory(categoryId) {
   try {
     const { error } = await supabase
-      .from('expense_categories')
+      .from('payment_methods')
       .delete()
       .eq('id', categoryId);
 
@@ -71,7 +102,7 @@ export async function deleteCategory(categoryId) {
 export async function updateCategory(categoryId, updates) {
   try {
     const { data, error } = await supabase
-      .from('expense_categories')
+      .from('payment_methods')
       .update(updates)
       .eq('id', categoryId)
       .select()
@@ -250,7 +281,7 @@ export function subscribeToCategories(userId, callback) {
       {
         event: '*',
         schema: 'public',
-        table: 'expense_categories',
+        table: 'payment_methods',
         filter: `user_id=eq.${userId}`
       },
       callback
