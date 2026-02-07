@@ -81,7 +81,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       // Verification code gönder
-      const response = await fetch('http://localhost:3001/api/send-verification-code', {
+      const response = await fetch('/api/send-verification-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -231,7 +231,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       // Reset code gönder
-      const response = await fetch('http://localhost:3001/api/send-verification-code', {
+      const response = await fetch('/api/send-verification-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
