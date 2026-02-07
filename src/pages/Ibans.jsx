@@ -109,15 +109,15 @@ const Ibans = ({ theme }) => {
     e.preventDefault();
     setError('');
 
-    if (!name.trim() || !bank.trim() || !ibanNumber.trim()) {
-      setError('Tüm alanları doldurun');
+    if (!name.trim() || !ibanNumber.trim()) {
+      setError('İsim ve IBAN numarası gerekli');
       return;
     }
 
     if (editingIban) {
       const { error } = await updateIban(editingIban.id, {
         name: name.trim(),
-        bank: bank.trim(),
+        bank: bank.trim() || null,
         iban_number: ibanNumber.trim()
       });
 
@@ -129,7 +129,7 @@ const Ibans = ({ theme }) => {
         await loadIbans();
       }
     } else {
-      const { error } = await addIban(user.id, name.trim(), bank.trim(), ibanNumber.trim());
+      const { error } = await addIban(user.id, name.trim(), bank.trim() || null, ibanNumber.trim());
 
       if (error) {
         setError('IBAN eklenemedi');
@@ -353,11 +353,13 @@ const Ibans = ({ theme }) => {
                           }`}>
                             {iban.name}
                           </div>
-                          <div className={`text-sm ${
-                            theme === 'dark' ? 'text-zinc-500' : 'text-gray-500'
-                          }`}>
-                            {iban.bank}
-                          </div>
+                          {iban.bank && (
+                            <div className={`text-sm ${
+                              theme === 'dark' ? 'text-zinc-500' : 'text-gray-500'
+                            }`}>
+                              {iban.bank}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -598,40 +600,42 @@ const Ibans = ({ theme }) => {
             </div>
 
             {/* Bank Row */}
-            <div className={`p-4 rounded-lg border ${
-              theme === 'dark'
-                ? 'bg-zinc-900/40 border-zinc-700'
-                : 'bg-white/60 border-gray-200'
-            }`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className={`text-xs font-medium mb-1 ${
-                    theme === 'dark' ? 'text-zinc-500' : 'text-gray-500'
-                  }`}>
-                    {t('bank')}
+            {viewModal.iban.bank && (
+              <div className={`p-4 rounded-lg border ${
+                theme === 'dark'
+                  ? 'bg-zinc-900/40 border-zinc-700'
+                  : 'bg-white/60 border-gray-200'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className={`text-xs font-medium mb-1 ${
+                      theme === 'dark' ? 'text-zinc-500' : 'text-gray-500'
+                    }`}>
+                      {t('bank')}
+                    </div>
+                    <div className={`text-base ${
+                      theme === 'dark' ? 'text-zinc-200' : 'text-gray-800'
+                    }`}>
+                      {viewModal.iban.bank}
+                    </div>
                   </div>
-                  <div className={`text-base ${
-                    theme === 'dark' ? 'text-zinc-200' : 'text-gray-800'
-                  }`}>
-                    {viewModal.iban.bank}
-                  </div>
+                  <button
+                    onClick={() => copyToClipboard(viewModal.iban.bank, 'view-bank')}
+                    className={`p-2 rounded-lg transition-colors ${
+                      theme === 'dark'
+                        ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-400'
+                        : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
+                    }`}
+                  >
+                    {copiedField === 'view-bank' ? (
+                      <Check size={18} className="text-green-500" />
+                    ) : (
+                      <Copy size={18} />
+                    )}
+                  </button>
                 </div>
-                <button
-                  onClick={() => copyToClipboard(viewModal.iban.bank, 'view-bank')}
-                  className={`p-2 rounded-lg transition-colors ${
-                    theme === 'dark'
-                      ? 'bg-zinc-800 hover:bg-zinc-700 text-zinc-400'
-                      : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
-                  }`}
-                >
-                  {copiedField === 'view-bank' ? (
-                    <Check size={18} className="text-green-500" />
-                  ) : (
-                    <Copy size={18} />
-                  )}
-                </button>
               </div>
-            </div>
+            )}
 
             {/* IBAN Number Row */}
             <div className={`p-4 rounded-lg border ${

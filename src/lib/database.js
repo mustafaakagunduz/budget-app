@@ -149,7 +149,7 @@ export async function getUserTransactions(userId, type = null) {
 /**
  * Yeni transaction ekle (income veya expense)
  */
-export async function addTransaction(userId, type, title, amount, category = null, timestamp = null) {
+export async function addTransaction(userId, type, title, amount, category = null, expenseType = null, timestamp = null) {
   try {
     const { data, error } = await supabase
       .from('transactions')
@@ -159,6 +159,7 @@ export async function addTransaction(userId, type, title, amount, category = nul
         title,
         amount,
         category: type === 'expense' ? category : null,
+        expense_type: type === 'expense' ? expenseType : null,
         timestamp: timestamp || new Date().toISOString()
       })
       .select()

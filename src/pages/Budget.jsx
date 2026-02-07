@@ -17,6 +17,7 @@ const Budget = ({ theme }) => {
   const [formTitle, setFormTitle] = useState('');
   const [formAmount, setFormAmount] = useState('');
   const [formCategory, setFormCategory] = useState('');
+  const [formExpenseType, setFormExpenseType] = useState('necessary');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, entry: null });
@@ -117,11 +118,13 @@ const Budget = ({ theme }) => {
       setFormTitle(entry.title);
       setFormAmount(entry.amount.toString());
       setFormCategory(entry.category || '');
+      setFormExpenseType(entry.expense_type || 'necessary');
     } else {
       // Yeni ekleme modu
       setFormTitle('');
       setFormAmount('');
       setFormCategory('');
+      setFormExpenseType('necessary');
     }
 
     setError('');
@@ -141,6 +144,7 @@ const Budget = ({ theme }) => {
     setFormTitle('');
     setFormAmount('');
     setFormCategory('');
+    setFormExpenseType('necessary');
     setError('');
     setEditingEntry(null);
   };
@@ -164,7 +168,8 @@ const Budget = ({ theme }) => {
       const updates = {
         title: formTitle.trim(),
         amount: parseFloat(formAmount),
-        category: modalType === 'expense' ? formCategory : null
+        category: modalType === 'expense' ? formCategory : null,
+        expense_type: modalType === 'expense' ? formExpenseType : null
       };
 
       const { error } = await updateTransaction(editingEntry.id, updates);
@@ -189,6 +194,7 @@ const Budget = ({ theme }) => {
         formTitle.trim(),
         parseFloat(formAmount),
         modalType === 'expense' ? formCategory : null,
+        modalType === 'expense' ? formExpenseType : null,
         gmt3Time.toISOString()
       );
 
@@ -408,6 +414,15 @@ const Budget = ({ theme }) => {
             onTouchMove={(e) => handleTouchMove(e, entry)}
             onTouchEnd={(e) => handleTouchEnd(e, entry)}
           >
+            {/* Expense type color indicator */}
+            {(type === 'expense' || entry.type === 'expense') && (
+              <div
+                className="w-1.5 h-12 rounded-full"
+                style={{
+                  backgroundColor: entry.expense_type === 'optional' ? '#ec4899' : '#3b82f6'
+                }}
+              />
+            )}
             <div className="flex-1">
               <div className={`text-lg ${
                 theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'
@@ -873,32 +888,70 @@ const Budget = ({ theme }) => {
           </div>
 
           {modalType === 'expense' && (
-            <div>
-              <label className={`block text-sm font-medium mb-2 ${
-                theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'
-              }`}>
-                {t('paymentMethod')}
-              </label>
-              <select
-                value={formCategory}
-                onChange={(e) => setFormCategory(e.target.value)}
-                className={`w-full px-3 py-2 rounded-lg border ${
-                  theme === 'dark'
-                    ? 'bg-zinc-800 border-zinc-700 text-white'
-                    : 'bg-white border-gray-300 text-gray-900'
-                } focus:outline-none focus:ring-2 focus:ring-cyan-400`}
-              >
-                {categories.length === 0 ? (
-                  <option value="">Ödeme yöntemi yok</option>
-                ) : (
-                  categories.map((cat) => (
-                    <option key={cat.id} value={cat.name}>
-                      {cat.name}
-                    </option>
-                  ))
-                )}
-              </select>
-            </div>
+            <>
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${
+                  theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'
+                }`}>
+                  {t('paymentMethod')}
+                </label>
+                <select
+                  value={formCategory}
+                  onChange={(e) => setFormCategory(e.target.value)}
+                  className={`w-full px-3 py-2 rounded-lg border ${
+                    theme === 'dark'
+                      ? 'bg-zinc-800 border-zinc-700 text-white'
+                      : 'bg-white border-gray-300 text-gray-900'
+                  } focus:outline-none focus:ring-2 focus:ring-cyan-400`}
+                >
+                  {categories.length === 0 ? (
+                    <option value="">Ödeme yöntemi yok</option>
+                  ) : (
+                    categories.map((cat) => (
+                      <option key={cat.id} value={cat.name}>
+                        {cat.name}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${
+                  theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'
+                }`}>
+                  {t('expenseType')}
+                </label>
+                <div className="flex gap-4">
+                  <label className={`flex items-center cursor-pointer ${
+                    theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="expenseType"
+                      value="necessary"
+                      checked={formExpenseType === 'necessary'}
+                      onChange={(e) => setFormExpenseType(e.target.value)}
+                      className="mr-2 accent-blue-500"
+                    />
+                    {t('necessary')}
+                  </label>
+                  <label className={`flex items-center cursor-pointer ${
+                    theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="expenseType"
+                      value="optional"
+                      checked={formExpenseType === 'optional'}
+                      onChange={(e) => setFormExpenseType(e.target.value)}
+                      className="mr-2 accent-pink-500"
+                    />
+                    {t('optional')}
+                  </label>
+                </div>
+              </div>
+            </>
           )}
 
           <div className="flex gap-3 pt-4">

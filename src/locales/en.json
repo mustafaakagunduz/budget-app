@@ -45,5 +45,8 @@
   "bank": "Bank",
   "addIban": "Add IBAN",
   "copy": "Copy",
-  "copied": "Copied"
+  "copied": "Copied",
+  "expenseType": "Expense Type",
+  "necessary": "Necessary",
+  "optional": "Optional"
 }

@@ -45,5 +45,8 @@
   "bank": "Banka",
   "addIban": "IBAN Ekle",
   "copy": "Kopyala",
-  "copied": "Kopyalandı"
+  "copied": "Kopyalandı",
+  "expenseType": "Harcama Türü",
+  "necessary": "Zorunlu",
+  "optional": "Keyfî"
 }
