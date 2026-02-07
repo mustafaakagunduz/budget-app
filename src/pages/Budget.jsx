@@ -216,16 +216,37 @@ const Budget = ({ theme }) => {
       return (
         <>
           {hasIncomes && (
-            <button
-              onClick={() => openModal('income')}
-              className={`w-full py-3 mb-4 rounded-lg font-semibold transition-colors ${
+            <>
+              <button
+                onClick={() => openModal('income')}
+                className={`w-full py-3 mb-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 ${
+                  theme === 'dark'
+                    ? 'bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/20'
+                    : 'bg-green-50 text-green-600 hover:bg-green-100 border border-green-200'
+                }`}
+              >
+                <Plus size={20} />
+                {t('addIncome')}
+              </button>
+
+              {/* Total Card */}
+              <div className={`mb-4 p-4 rounded-xl backdrop-blur-sm border ${
                 theme === 'dark'
-                  ? 'bg-zinc-800 text-cyan-400 hover:bg-zinc-700'
-                  : 'bg-gray-100 text-blue-600 hover:bg-gray-200'
-              }`}
-            >
-              {t('addIncome')}
-            </button>
+                  ? 'bg-zinc-900/40 border-zinc-700/50'
+                  : 'bg-white/60 border-gray-200/50'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <span className={`text-sm font-medium ${
+                    theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'
+                  }`}>
+                    Toplam
+                  </span>
+                  <span className="text-2xl font-bold text-green-500">
+                    {calculateNetAmount().toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺
+                  </span>
+                </div>
+              </div>
+            </>
           )}
 
           {!hasIncomes ? (
@@ -266,16 +287,37 @@ const Budget = ({ theme }) => {
       return (
         <>
           {hasExpenses && (
-            <button
-              onClick={() => openModal('expense')}
-              className={`w-full py-3 mb-4 rounded-lg font-semibold transition-colors ${
+            <>
+              <button
+                onClick={() => openModal('expense')}
+                className={`w-full py-3 mb-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 ${
+                  theme === 'dark'
+                    ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20'
+                    : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
+                }`}
+              >
+                <Minus size={20} />
+                {t('addExpense')}
+              </button>
+
+              {/* Total Card */}
+              <div className={`mb-4 p-4 rounded-xl backdrop-blur-sm border ${
                 theme === 'dark'
-                  ? 'bg-zinc-800 text-cyan-400 hover:bg-zinc-700'
-                  : 'bg-gray-100 text-blue-600 hover:bg-gray-200'
-              }`}
-            >
-              {t('addExpense')}
-            </button>
+                  ? 'bg-zinc-900/40 border-zinc-700/50'
+                  : 'bg-white/60 border-gray-200/50'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <span className={`text-sm font-medium ${
+                    theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'
+                  }`}>
+                    Toplam
+                  </span>
+                  <span className="text-2xl font-bold text-red-500">
+                    {calculateNetAmount().toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺
+                  </span>
+                </div>
+              </div>
+            </>
           )}
 
           {!hasExpenses ? (
@@ -315,7 +357,66 @@ const Budget = ({ theme }) => {
 
     return (
       <div>
-        {allEntries.length > 0 && renderEntries(allEntries, 'all')}
+        {/* Gelir ve Gider Ekle Butonları */}
+        <div className="flex gap-3 mb-4">
+          <button
+            onClick={() => openModal('income')}
+            className={`flex-1 py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 ${
+              theme === 'dark'
+                ? 'bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/20'
+                : 'bg-green-50 text-green-600 hover:bg-green-100 border border-green-200'
+            }`}
+          >
+            <Plus size={20} />
+            {t('addIncome')}
+          </button>
+          <button
+            onClick={() => openModal('expense')}
+            className={`flex-1 py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 ${
+              theme === 'dark'
+                ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20'
+                : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
+            }`}
+          >
+            <Minus size={20} />
+            {t('addExpense')}
+          </button>
+        </div>
+
+        {/* Net Card */}
+        <div className={`mb-4 p-4 rounded-xl backdrop-blur-sm border ${
+          theme === 'dark'
+            ? 'bg-zinc-900/40 border-zinc-700/50'
+            : 'bg-white/60 border-gray-200/50'
+        }`}>
+          <div className="flex items-center justify-between">
+            <span className={`text-sm font-medium ${
+              theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'
+            }`}>
+              {t('net')}
+            </span>
+            <span className={`text-2xl font-bold ${
+              calculateNetAmount() === 0
+                ? theme === 'dark' ? 'text-white' : 'text-gray-900'
+                : calculateNetAmount() > 0
+                  ? 'text-green-500'
+                  : 'text-red-500'
+            }`}>
+              {calculateNetAmount().toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺
+            </span>
+          </div>
+        </div>
+
+        {/* Entries List */}
+        {allEntries.length === 0 ? (
+          <div className="flex-1 flex items-center justify-center py-12">
+            <p className={`text-lg ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+              Henüz işlem yok
+            </p>
+          </div>
+        ) : (
+          renderEntries(allEntries, 'all')
+        )}
       </div>
     );
   };
@@ -357,26 +458,8 @@ const Budget = ({ theme }) => {
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 flex flex-col px-4 py-6 pb-32">
+      <div className="flex-1 flex flex-col px-4 py-6 pb-24">
         {renderContent()}
-      </div>
-
-      {/* Net Amount Bar */}
-      <div className="fixed bottom-24 left-0 right-0 px-4 py-3">
-        <div className="flex items-center justify-between max-w-md mx-auto">
-          <span className={`text-lg font-semibold ${
-            theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'
-          }`}>
-            {activeTab === 'all' ? t('net') : activeTab === 'income' ? t('income') : t('expense')}
-          </span>
-          <span className={`text-xl font-bold ${
-            calculateNetAmount() >= 0
-              ? 'text-green-500'
-              : 'text-red-500'
-          }`}>
-            {calculateNetAmount().toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺
-          </span>
-        </div>
       </div>
 
       {/* Modal */}
