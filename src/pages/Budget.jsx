@@ -132,6 +132,8 @@ const Budget = ({ theme }) => {
     } else {
       closeModal();
       // Realtime subscription otomatik güncelleyecek
+      // Ama fallback olarak manuel yeniden yükle
+      await loadTransactions();
     }
   };
 
