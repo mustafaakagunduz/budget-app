@@ -65,6 +65,26 @@ export async function deleteCategory(categoryId) {
   }
 }
 
+/**
+ * Kategori güncelle
+ */
+export async function updateCategory(categoryId, updates) {
+  try {
+    const { data, error } = await supabase
+      .from('expense_categories')
+      .update(updates)
+      .eq('id', categoryId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('Update category error:', error);
+    return { data: null, error: error.message };
+  }
+}
+
 // =============================================
 // TRANSACTIONS (Income & Expense)
 // =============================================

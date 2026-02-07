@@ -19,6 +19,9 @@ const Budget = ({ theme }) => {
   const [formCategory, setFormCategory] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState({ open: false, entry: null });
+  const [deleteError, setDeleteError] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Context menu states
   const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, entry: null });
@@ -197,17 +200,37 @@ const Budget = ({ theme }) => {
     }
   };
 
-  const handleDeleteEntry = async (entry) => {
+  const openDeleteConfirm = (entry) => {
     setContextMenu({ visible: false, x: 0, y: 0, entry: null });
+    setSwipedEntry(null);
+    setDeleteError('');
+    setDeleteConfirm({ open: true, entry });
+  };
 
-    const { error } = await deleteTransaction(entry.id);
+  const closeDeleteConfirm = () => {
+    if (isDeleting) return;
+    setDeleteConfirm({ open: false, entry: null });
+    setDeleteError('');
+  };
+
+  const handleDeleteEntry = async () => {
+    if (!deleteConfirm.entry || isDeleting) return;
+
+    setIsDeleting(true);
+    setDeleteError('');
+
+    const { error } = await deleteTransaction(deleteConfirm.entry.id);
 
     if (error) {
       console.error('Delete error:', error);
-      setError('İşlem silinemedi');
-    } else {
-      await loadTransactions();
+      setDeleteError('İşlem silinemedi');
+      setIsDeleting(false);
+      return;
     }
+
+    setIsDeleting(false);
+    setDeleteConfirm({ open: false, entry: null });
+    await loadTransactions();
   };
 
   const handleEditEntry = (entry) => {
@@ -325,7 +348,7 @@ const Budget = ({ theme }) => {
               <Edit2 size={18} />
             </button>
             <button
-              onClick={() => handleDeleteEntry(entry)}
+              onClick={() => openDeleteConfirm(entry)}
               className={`h-full px-5 rounded-lg font-medium transition-colors ${
                 theme === 'dark'
                   ? 'bg-red-600 hover:bg-red-700 text-white'
@@ -674,7 +697,7 @@ const Budget = ({ theme }) => {
             <span>Düzenle</span>
           </button>
           <button
-            onClick={() => handleDeleteEntry(contextMenu.entry)}
+            onClick={() => openDeleteConfirm(contextMenu.entry)}
             className={`w-full px-4 py-2.5 text-left flex items-center gap-3 transition-colors ${
               theme === 'dark'
                 ? 'text-red-400 hover:bg-zinc-700'
@@ -796,6 +819,55 @@ const Budget = ({ theme }) => {
             </button>
           </div>
         </form>
+      </GenericModal>
+
+      {/* Delete Confirm Modal */}
+      <GenericModal
+        isOpen={deleteConfirm.open}
+        onClose={closeDeleteConfirm}
+        title="Emin misiniz?"
+        theme={theme}
+      >
+        <div className="space-y-4">
+          <p className={`${theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'}`}>
+            {deleteConfirm.entry?.title
+              ? `"${deleteConfirm.entry.title}" işlemini silmek istediğinize emin misiniz?`
+              : 'Bu işlemi silmek istediğinize emin misiniz?'}
+          </p>
+
+          {deleteError && (
+            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+              <p className="text-red-500 text-sm">{deleteError}</p>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={closeDeleteConfirm}
+              disabled={isDeleting}
+              className={`flex-1 py-2 rounded-lg font-semibold transition-colors ${
+                theme === 'dark'
+                  ? 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              } ${isDeleting ? 'opacity-60 cursor-not-allowed' : ''}`}
+            >
+              {t('cancel')}
+            </button>
+            <button
+              type="button"
+              onClick={handleDeleteEntry}
+              disabled={isDeleting}
+              className={`flex-1 py-2 rounded-lg font-semibold transition-colors ${
+                theme === 'dark'
+                  ? 'bg-red-500 text-white hover:bg-red-400'
+                  : 'bg-red-600 text-white hover:bg-red-700'
+              } ${isDeleting ? 'opacity-60 cursor-not-allowed' : ''}`}
+            >
+              {isDeleting ? 'Siliniyor...' : 'Sil'}
+            </button>
+          </div>
+        </div>
       </GenericModal>
     </div>
   );
