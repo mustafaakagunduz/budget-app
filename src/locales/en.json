@@ -48,5 +48,14 @@
   "copied": "Copied",
   "expenseType": "Expense Type",
   "necessary": "Necessary",
-  "optional": "Optional"
+  "optional": "Optional",
+  "groupBy": "Group By",
+  "groupByDefault": "Default",
+  "groupByPaymentMethod": "Payment Method",
+  "groupByExpenseType": "Necessity",
+  "sortBy": "Sort",
+  "sortDateDesc": "Date / Newest",
+  "sortDateAsc": "Date / Oldest",
+  "sortAmountDesc": "Amount / Highest",
+  "sortAmountAsc": "Amount / Lowest"
 }

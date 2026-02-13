@@ -48,5 +48,14 @@
   "copied": "Kopyalandı",
   "expenseType": "Harcama Türü",
   "necessary": "Zorunlu",
-  "optional": "Keyfî"
+  "optional": "Keyfî",
+  "groupBy": "Grupla",
+  "groupByDefault": "Varsayılan",
+  "groupByPaymentMethod": "Ödeme Yöntemi",
+  "groupByExpenseType": "Zorunluluk",
+  "sortBy": "Sırala",
+  "sortDateDesc": "Tarih / Azalan",
+  "sortDateAsc": "Tarih / Artan",
+  "sortAmountDesc": "Miktar / Azalan",
+  "sortAmountAsc": "Miktar / Artan"
 }

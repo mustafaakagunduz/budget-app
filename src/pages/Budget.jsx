@@ -5,6 +5,74 @@ import { useAuth } from '../contexts/AuthContext';
 import { getUserTransactions, getUserCategories, addTransaction, updateTransaction, deleteTransaction, subscribeToTransactions, unsubscribe } from '../lib/database';
 import GenericModal from '../components/GenericModal';
 
+const CustomDropdown = ({ value, onChange, options, placeholder, theme }) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const selected = options.find(o => o.value === value);
+
+  return (
+    <div ref={ref} className="relative flex-1">
+      <button
+        type="button"
+        onClick={() => setOpen(prev => !prev)}
+        className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
+          theme === 'dark'
+            ? 'bg-zinc-900/40 border-zinc-700/50 text-zinc-300 hover:bg-zinc-800/50'
+            : 'bg-white/60 border-gray-200/50 text-gray-700 hover:bg-gray-100'
+        }`}
+      >
+        <span className={selected ? '' : (theme === 'dark' ? 'text-zinc-500' : 'text-gray-400')}>
+          {selected ? selected.label : placeholder}
+        </span>
+        <ChevronDown
+          size={14}
+          className={`shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''} ${
+            theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
+          }`}
+        />
+      </button>
+
+      <div
+        className={`absolute z-[200] left-0 right-0 mt-1 rounded-xl border overflow-hidden transition-all duration-200 origin-top ${
+          open ? 'opacity-100 scale-y-100 pointer-events-auto' : 'opacity-0 scale-y-95 pointer-events-none'
+        } ${
+          theme === 'dark'
+            ? 'bg-zinc-900 border-zinc-700/60 shadow-xl shadow-black/40'
+            : 'bg-white border-gray-200 shadow-xl shadow-black/10'
+        }`}
+      >
+        {options.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => { onChange(opt.value); setOpen(false); }}
+            className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
+              opt.value === value
+                ? theme === 'dark'
+                  ? 'bg-cyan-500/15 text-cyan-400 font-medium'
+                  : 'bg-blue-50 text-blue-600 font-medium'
+                : theme === 'dark'
+                  ? 'text-zinc-300 hover:bg-zinc-800'
+                  : 'text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const Budget = ({ theme }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -23,7 +91,8 @@ const Budget = ({ theme }) => {
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, entry: null });
   const [deleteError, setDeleteError] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
-  const [groupByPaymentMethod, setGroupByPaymentMethod] = useState(false);
+  const [groupBy, setGroupBy] = useState('default');
+  const [sortBy, setSortBy] = useState('default');
   const [expandedCategories, setExpandedCategories] = useState(new Set());
 
   // Context menu states
@@ -178,6 +247,7 @@ const Budget = ({ theme }) => {
         setError('İşlem güncellenemedi');
         console.error(error);
       } else {
+        setSwipedEntry(null);
         closeModal();
         await loadTransactions();
       }
@@ -357,6 +427,30 @@ const Budget = ({ theme }) => {
 
   const getExpensesByCategory = (expenses, categoryName) => {
     return expenses.filter(expense => (expense.category || 'Diğer') === categoryName);
+  };
+
+  const calculateExpenseTypeTotals = (expenses) => {
+    const totals = {};
+    expenses.forEach(expense => {
+      const type = expense.expense_type || 'necessary';
+      if (!totals[type]) totals[type] = 0;
+      totals[type] += parseFloat(expense.amount);
+    });
+    return totals;
+  };
+
+  const getExpensesByType = (expenses, expenseType) => {
+    return expenses.filter(expense => (expense.expense_type || 'necessary') === expenseType);
+  };
+
+  const sortExpenses = (list) => {
+    return [...list].sort((a, b) => {
+      if (sortBy === 'dateDesc') return new Date(b.created_at) - new Date(a.created_at);
+      if (sortBy === 'dateAsc') return new Date(a.created_at) - new Date(b.created_at);
+      if (sortBy === 'amountDesc') return parseFloat(b.amount) - parseFloat(a.amount);
+      if (sortBy === 'amountAsc') return parseFloat(a.amount) - parseFloat(b.amount);
+      return 0;
+    });
   };
 
   const renderEntries = (entries, type) => {
@@ -567,26 +661,35 @@ const Budget = ({ theme }) => {
                 </div>
               </div>
 
-              {/* Group by Payment Method Checkbox */}
-              <div className={`mb-4 p-3 rounded-lg flex items-center gap-3 cursor-pointer transition-colors ${
-                theme === 'dark'
-                  ? 'bg-zinc-900/40 hover:bg-zinc-800/50'
-                  : 'bg-white/60 hover:bg-gray-100'
-              }`}
-              onClick={() => setGroupByPaymentMethod(!groupByPaymentMethod)}
-              >
-                <input
-                  type="checkbox"
-                  checked={groupByPaymentMethod}
-                  onChange={(e) => setGroupByPaymentMethod(e.target.checked)}
-                  onClick={(e) => e.stopPropagation()}
-                  className="w-4 h-4 rounded cursor-pointer accent-cyan-500"
+              {/* Group By + Sort By Dropdowns */}
+              <div className="mb-4 flex gap-2">
+                <CustomDropdown
+                  theme={theme}
+                  value={groupBy === 'default' ? null : groupBy}
+                  placeholder={t('groupBy')}
+                  onChange={(val) => {
+                    setGroupBy(val);
+                    setExpandedCategories(new Set());
+                  }}
+                  options={[
+                    { value: 'default', label: t('groupByDefault') },
+                    { value: 'paymentMethod', label: t('groupByPaymentMethod') },
+                    { value: 'expenseType', label: t('groupByExpenseType') },
+                  ]}
                 />
-                <label className={`text-sm font-medium cursor-pointer select-none ${
-                  theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'
-                }`}>
-                  Ödeme Yöntemine Göre Grupla
-                </label>
+                <CustomDropdown
+                  theme={theme}
+                  value={sortBy === 'default' ? null : sortBy}
+                  placeholder={t('sortBy')}
+                  onChange={(val) => setSortBy(val)}
+                  options={[
+                    { value: 'default', label: t('groupByDefault') },
+                    { value: 'dateDesc', label: t('sortDateDesc') },
+                    { value: 'dateAsc', label: t('sortDateAsc') },
+                    { value: 'amountDesc', label: t('sortAmountDesc') },
+                    { value: 'amountAsc', label: t('sortAmountAsc') },
+                  ]}
+                />
               </div>
             </>
           )}
@@ -616,19 +719,19 @@ const Budget = ({ theme }) => {
             </div>
           ) : (
             <div>
-              {groupByPaymentMethod ? (
+              {groupBy === 'paymentMethod' ? (
                 // Grouped by payment method - collapsible
                 (() => {
-                  const totals = calculatePaymentMethodTotals(expenses);
+                  const sorted = sortExpenses(expenses);
+                  const totals = calculatePaymentMethodTotals(sorted);
                   return Object.keys(totals).map(categoryName => {
                     const categoryTotal = totals[categoryName];
                     const categoryColor = getCategoryColor(categoryName);
                     const isExpanded = expandedCategories.has(categoryName);
-                    const categoryExpenses = getExpensesByCategory(expenses, categoryName);
+                    const categoryExpenses = getExpensesByCategory(sorted, categoryName);
 
                     return (
                       <div key={categoryName} className="mb-2">
-                        {/* Header Row */}
                         <div
                           onClick={() => toggleCategory(categoryName)}
                           className={`relative flex items-center gap-3 py-3 px-4 rounded-lg cursor-pointer transition-colors ${
@@ -661,8 +764,6 @@ const Budget = ({ theme }) => {
                             {categoryTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺
                           </span>
                         </div>
-
-                        {/* Expanded Content */}
                         {isExpanded && (
                           <div className="mt-2 ml-8">
                             {renderEntries(categoryExpenses, 'expense')}
@@ -672,9 +773,64 @@ const Budget = ({ theme }) => {
                     );
                   });
                 })()
+              ) : groupBy === 'expenseType' ? (
+                // Grouped by expense type (necessary / optional) - collapsible
+                (() => {
+                  const sorted = sortExpenses(expenses);
+                  const totals = calculateExpenseTypeTotals(sorted);
+                  const typeOrder = ['necessary', 'optional'];
+                  return typeOrder.filter(type => totals[type] !== undefined).map(expenseType => {
+                    const typeTotal = totals[expenseType];
+                    const isExpanded = expandedCategories.has(expenseType);
+                    const typeExpenses = getExpensesByType(sorted, expenseType);
+                    const typeColor = expenseType === 'necessary' ? '#3b82f6' : '#ec4899';
+
+                    return (
+                      <div key={expenseType} className="mb-2">
+                        <div
+                          onClick={() => toggleCategory(expenseType)}
+                          className={`relative flex items-center gap-3 py-3 px-4 rounded-lg cursor-pointer transition-colors ${
+                            theme === 'dark'
+                              ? 'bg-zinc-900/40 hover:bg-zinc-800/50'
+                              : 'bg-white/60 hover:bg-gray-100'
+                          }`}
+                        >
+                          <div
+                            className="w-5 h-5 rounded-full flex items-center justify-center relative"
+                            style={{ backgroundColor: typeColor }}
+                          >
+                            <ChevronDown
+                              size={14}
+                              className={`transition-transform ${
+                                isExpanded ? 'rotate-180' : ''
+                              } ${
+                                theme === 'dark' ? 'text-cyan-400' : 'text-blue-600'
+                              }`}
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <div className={`text-lg ${
+                              theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'
+                            }`}>
+                              {t(expenseType)}
+                            </div>
+                          </div>
+                          <span className="font-semibold text-red-500">
+                            {typeTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺
+                          </span>
+                        </div>
+                        {isExpanded && (
+                          <div className="mt-2 ml-8">
+                            {renderEntries(typeExpenses, 'expense')}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  });
+                })()
               ) : (
-                // Normal list
-                renderEntries(expenses, 'expense')
+                // Normal list (default)
+                renderEntries(sortExpenses(expenses), 'expense')
               )}
             </div>
           )}
@@ -895,33 +1051,13 @@ const Budget = ({ theme }) => {
                 }`}>
                   {t('paymentMethod')}
                 </label>
-                <div className="relative">
-                  <select
-                    value={formCategory}
-                    onChange={(e) => setFormCategory(e.target.value)}
-                    className={`w-full px-4 py-3 rounded-lg border appearance-none cursor-pointer ${
-                      theme === 'dark'
-                        ? 'bg-zinc-800 border-zinc-700 text-white'
-                        : 'bg-white border-gray-300 text-gray-900'
-                    } focus:outline-none focus:ring-2 focus:ring-cyan-400 transition-all`}
-                  >
-                    {categories.length === 0 ? (
-                      <option value="">Ödeme yöntemi yok</option>
-                    ) : (
-                      categories.map((cat) => (
-                        <option key={cat.id} value={cat.name}>
-                          {cat.name}
-                        </option>
-                      ))
-                    )}
-                  </select>
-                  <ChevronDown
-                    size={20}
-                    className={`absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none ${
-                      theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'
-                    }`}
-                  />
-                </div>
+                <CustomDropdown
+                  theme={theme}
+                  value={formCategory || null}
+                  placeholder={t('paymentMethod')}
+                  onChange={(val) => setFormCategory(val)}
+                  options={categories.map((cat) => ({ value: cat.name, label: cat.name }))}
+                />
               </div>
 
               <div>
