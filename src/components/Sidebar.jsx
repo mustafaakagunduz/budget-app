@@ -136,13 +136,6 @@ const Sidebar = ({ isOpen, onClose, theme, setTheme, currency, setCurrency }) =>
               </button>
             </nav>
 
-            {/* Saved IBANs Section */}
-            <div className={`mb-6 px-4 py-2 ${
-              theme === 'dark' ? 'text-zinc-500 text-xs' : 'text-gray-400 text-xs'
-            }`}>
-              {t('savedIbans')}
-            </div>
-
             {/* Language Selector - Collapsible */}
             <div className="mb-6">
               <button
