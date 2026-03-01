@@ -15,6 +15,7 @@ import Signup from './pages/Signup';
 import VerifyEmail from './pages/VerifyEmail';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import Settings from './pages/Settings';
 
 function AppContent({ theme, setTheme, currency, setCurrency, sidebarOpen, setSidebarOpen }) {
   const location = useLocation();
@@ -93,6 +94,14 @@ function AppContent({ theme, setTheme, currency, setCurrency, sidebarOpen, setSi
             element={
               <ProtectedRoute>
                 <Ibans theme={theme} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <Settings theme={theme} />
               </ProtectedRoute>
             }
           />

@@ -369,6 +369,39 @@ export async function updateIban(ibanId, updates) {
 }
 
 /**
+ * Kullanıcının tüm verilerini sıfırla (transactions, payment_methods, ibans)
+ */
+export async function resetAllUserData(userId) {
+  try {
+    const { error: transactionsError } = await supabase
+      .from('transactions')
+      .delete()
+      .eq('user_id', userId);
+
+    if (transactionsError) throw transactionsError;
+
+    const { error: paymentMethodsError } = await supabase
+      .from('payment_methods')
+      .delete()
+      .eq('user_id', userId);
+
+    if (paymentMethodsError) throw paymentMethodsError;
+
+    const { error: ibansError } = await supabase
+      .from('ibans')
+      .delete()
+      .eq('user_id', userId);
+
+    if (ibansError) throw ibansError;
+
+    return { error: null };
+  } catch (error) {
+    console.error('Reset all user data error:', error);
+    return { error: error.message };
+  }
+}
+
+/**
  * IBAN sil
  */
 export async function deleteIban(ibanId) {

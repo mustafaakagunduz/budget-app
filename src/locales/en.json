@@ -57,5 +57,10 @@
   "sortDateDesc": "Date / Newest",
   "sortDateAsc": "Date / Oldest",
   "sortAmountDesc": "Amount / Highest",
-  "sortAmountAsc": "Amount / Lowest"
+  "sortAmountAsc": "Amount / Lowest",
+  "dangerZone": "Danger Zone",
+  "resetAllData": "Reset All My Records",
+  "resetAllDataDesc": "This action will permanently delete all your transactions, payment methods, and IBANs. This cannot be undone.",
+  "resetConfirm": "Yes, Reset Everything",
+  "resetSuccess": "All records have been reset successfully."
 }

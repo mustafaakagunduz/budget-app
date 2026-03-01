@@ -57,5 +57,10 @@
   "sortDateDesc": "Tarih / Azalan",
   "sortDateAsc": "Tarih / Artan",
   "sortAmountDesc": "Miktar / Azalan",
-  "sortAmountAsc": "Miktar / Artan"
+  "sortAmountAsc": "Miktar / Artan",
+  "dangerZone": "Tehlikeli Bölge",
+  "resetAllData": "Tüm Kayıtlarımı Sıfırla",
+  "resetAllDataDesc": "Bu işlem tüm gelir/gider kayıtlarınızı, ödeme yöntemlerinizi ve IBAN bilgilerinizi kalıcı olarak siler. Bu işlem geri alınamaz.",
+  "resetConfirm": "Evet, Sıfırla",
+  "resetSuccess": "Tüm kayıtlar başarıyla sıfırlandı."
 }

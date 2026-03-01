@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Sun, Moon, ChevronDown, Home, ArrowUpDown, TrendingUp, Tags, LogOut, CreditCard } from 'lucide-react';
+import { X, Sun, Moon, ChevronDown, Home, ArrowUpDown, TrendingUp, Tags, LogOut, CreditCard, Settings } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -133,6 +133,15 @@ const Sidebar = ({ isOpen, onClose, theme, setTheme, currency, setCurrency }) =>
               >
                 <CreditCard size={20} />
                 {t('ibanInfo')}
+              </button>
+              <button
+                onClick={() => handleNavigate('/settings')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  theme === 'dark' ? 'text-zinc-300 hover:bg-zinc-700' : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <Settings size={20} />
+                {t('settings')}
               </button>
             </nav>
 
