@@ -67,22 +67,20 @@ const Settings = ({ theme }) => {
             </h2>
           </div>
 
-          <div className="px-4 py-4 flex items-center justify-between gap-4">
-            <div>
-              <p className={`text-sm font-medium ${
-                theme === 'dark' ? 'text-white' : 'text-gray-900'
-              }`}>
-                {t('resetAllData')}
-              </p>
-              <p className={`text-xs mt-1 ${
-                theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
-              }`}>
-                {t('resetAllDataDesc')}
-              </p>
-            </div>
+          <div className="px-4 py-4 flex flex-col gap-3 items-center text-center">
+            <p className={`text-sm font-medium ${
+              theme === 'dark' ? 'text-white' : 'text-gray-900'
+            }`}>
+              {t('resetAllData')}
+            </p>
+            <p className={`text-xs ${
+              theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
+            }`}>
+              {t('resetAllDataDesc')}
+            </p>
             <button
               onClick={() => setIsModalOpen(true)}
-              className={`shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`self-center px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 theme === 'dark'
                   ? 'bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20'
                   : 'bg-red-50 text-red-600 border border-red-300 hover:bg-red-100'
