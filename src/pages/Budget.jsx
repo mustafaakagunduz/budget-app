@@ -88,6 +88,7 @@ const Budget = ({ theme }) => {
   const [formAmount, setFormAmount] = useState('');
   const [formCategory, setFormCategory] = useState('');
   const [formExpenseType, setFormExpenseType] = useState('necessary');
+  const [formDate, setFormDate] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, entry: null });
@@ -218,6 +219,25 @@ const Budget = ({ theme }) => {
     }
   };
 
+  const getTodayDateStr = () => {
+    const now = new Date();
+    const localDate = new Date(now.getTime() + 3 * 60 * 60000);
+    return localDate.toISOString().slice(0, 10);
+  };
+
+  const getDateStrFromTimestamp = (ts) => {
+    const date = new Date(ts);
+    const localDate = new Date(date.getTime() + 3 * 60 * 60000);
+    return localDate.toISOString().slice(0, 10);
+  };
+
+  const buildTimestampFromDate = (dateStr) => {
+    // noon Istanbul (09:00 UTC) + convention +3h = T12:00Z
+    const gmt3Offset = 3 * 60 * 60 * 1000;
+    const base = new Date(dateStr + 'T09:00:00.000Z');
+    return new Date(base.getTime() + gmt3Offset).toISOString();
+  };
+
   const openModal = (type, entry = null) => {
     setModalType(type);
     setEditingEntry(entry);
@@ -228,12 +248,14 @@ const Budget = ({ theme }) => {
       setFormAmount(entry.amount.toString());
       setFormCategory(entry.category || '');
       setFormExpenseType(entry.expense_type || 'necessary');
+      setFormDate(getDateStrFromTimestamp(entry.timestamp));
     } else {
       // Yeni ekleme modu
       setFormTitle('');
       setFormAmount('');
       setFormCategory('');
       setFormExpenseType('necessary');
+      setFormDate(getTodayDateStr());
     }
 
     setError('');
@@ -254,6 +276,7 @@ const Budget = ({ theme }) => {
     setFormAmount('');
     setFormCategory('');
     setFormExpenseType('necessary');
+    setFormDate('');
     setError('');
     setEditingEntry(null);
   };
@@ -278,7 +301,8 @@ const Budget = ({ theme }) => {
         title: formTitle.trim(),
         amount: parseFloat(formAmount),
         category: modalType === 'expense' ? formCategory : null,
-        expense_type: modalType === 'expense' ? formExpenseType : null
+        expense_type: modalType === 'expense' ? formExpenseType : null,
+        timestamp: buildTimestampFromDate(formDate)
       };
 
       const { error } = await updateTransaction(editingEntry.id, updates);
@@ -293,11 +317,6 @@ const Budget = ({ theme }) => {
       }
     } else {
       // Yeni ekleme modu
-      // GMT+3 timestamp
-      const now = new Date();
-      const gmt3Offset = 3 * 60 * 60 * 1000;
-      const gmt3Time = new Date(now.getTime() + gmt3Offset);
-
       const { data, error } = await addTransaction(
         user.id,
         modalType,
@@ -305,7 +324,7 @@ const Budget = ({ theme }) => {
         parseFloat(formAmount),
         modalType === 'expense' ? formCategory : null,
         modalType === 'expense' ? formExpenseType : null,
-        gmt3Time.toISOString()
+        buildTimestampFromDate(formDate)
       );
 
       if (error) {
@@ -603,17 +622,28 @@ const Budget = ({ theme }) => {
   };
 
   const renderEntriesByDate = (entries, type) => {
+    const todayStr = getTodayDateStr();
     const grouped = groupEntriesByDate(entries);
-    return grouped.map(({ dateKey, dateLabel, entries: dateEntries }) => (
-      <div key={dateKey} className="mb-4">
-        <div className={`text-xs font-semibold mb-2 px-1 uppercase tracking-wide ${
-          theme === 'dark' ? 'text-zinc-500' : 'text-gray-400'
-        }`}>
-          {dateLabel}
+    return grouped.map(({ dateKey, dateLabel, entries: dateEntries }) => {
+      const isFuture = dateKey > todayStr;
+      return (
+        <div key={dateKey} className="mb-4">
+          <div className={`text-xs font-semibold mb-2 px-1 uppercase tracking-wide ${
+            theme === 'dark' ? 'text-zinc-500' : 'text-gray-400'
+          }`}>
+            {dateLabel}
+            {isFuture && (
+              <span className={`ml-2 normal-case font-medium ${
+                theme === 'dark' ? 'text-amber-400' : 'text-amber-600'
+              }`}>
+                ({t('futureDated')})
+              </span>
+            )}
+          </div>
+          {renderEntries(dateEntries, type)}
         </div>
-        {renderEntries(dateEntries, type)}
-      </div>
-    ));
+      );
+    });
   };
 
   const renderContent = () => {
@@ -1138,6 +1168,25 @@ const Budget = ({ theme }) => {
               step="0.01"
               value={formAmount}
               onChange={(e) => setFormAmount(e.target.value)}
+              className={`w-full px-3 py-2 rounded-lg border ${
+                theme === 'dark'
+                  ? 'bg-zinc-800 border-zinc-700 text-white'
+                  : 'bg-white border-gray-300 text-gray-900'
+              } focus:outline-none focus:ring-2 focus:ring-cyan-400`}
+            />
+          </div>
+
+          <div>
+            <label className={`block text-sm font-medium mb-2 ${
+              theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'
+            }`}>
+              Tarih
+            </label>
+            <input
+              type="date"
+              value={formDate}
+              onChange={(e) => setFormDate(e.target.value)}
+              style={{ colorScheme: theme === 'dark' ? 'dark' : 'light' }}
               className={`w-full px-3 py-2 rounded-lg border ${
                 theme === 'dark'
                   ? 'bg-zinc-800 border-zinc-700 text-white'
