@@ -1087,7 +1087,7 @@ const renderEntries = (entries, type) => {
       </div>
 
       {/* Month Navigator */}
-      <div className="flex items-center justify-between px-4 py-2.5">
+      <div className="flex items-center justify-between px-4 py-4">
         <button
           onClick={goToPrevMonth}
           className={`p-2 rounded-full transition-colors ${
@@ -1116,7 +1116,7 @@ const renderEntries = (entries, type) => {
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 flex flex-col px-4 py-6 pb-24">
+      <div className="flex-1 flex flex-col px-4 pb-24">
         {renderContent()}
       </div>
 
