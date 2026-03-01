@@ -1087,9 +1087,7 @@ const renderEntries = (entries, type) => {
       </div>
 
       {/* Month Navigator */}
-      <div className={`flex items-center justify-between px-4 py-2.5 ${
-        theme === 'dark' ? 'border-b border-zinc-800/70' : 'border-b border-gray-200/70'
-      }`}>
+      <div className="flex items-center justify-between px-4 py-2.5">
         <button
           onClick={goToPrevMonth}
           className={`p-2 rounded-full transition-colors ${
@@ -1100,7 +1098,7 @@ const renderEntries = (entries, type) => {
         >
           <ChevronLeft size={20} />
         </button>
-        <span className={`text-sm font-semibold tracking-wide ${
+        <span className={`text-base font-semibold tracking-wide ${
           theme === 'dark' ? 'text-zinc-200' : 'text-gray-800'
         }`}>
           {MONTH_NAMES_TR[selectedMonth]} {selectedYear}
