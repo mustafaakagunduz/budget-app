@@ -544,6 +544,38 @@ const Budget = ({ theme }) => {
     });
   };
 
+  const groupEntriesByDate = (entries) => {
+    const groups = {};
+    entries.forEach(entry => {
+      const date = new Date(entry.timestamp);
+      // GMT+3 (Türkiye saati)
+      const localDate = new Date(date.getTime() + 3 * 60 * 60000);
+      const dateKey = localDate.toISOString().slice(0, 10); // YYYY-MM-DD
+      if (!groups[dateKey]) groups[dateKey] = [];
+      groups[dateKey].push(entry);
+    });
+    return Object.keys(groups)
+      .sort((a, b) => b.localeCompare(a))
+      .map(dateKey => {
+        const [year, month, day] = dateKey.split('-');
+        return { dateKey, dateLabel: `${day}.${month}.${year}`, entries: groups[dateKey] };
+      });
+  };
+
+  const renderEntriesByDate = (entries, type) => {
+    const grouped = groupEntriesByDate(entries);
+    return grouped.map(({ dateKey, dateLabel, entries: dateEntries }) => (
+      <div key={dateKey} className="mb-4">
+        <div className={`text-xs font-semibold mb-2 px-1 uppercase tracking-wide ${
+          theme === 'dark' ? 'text-zinc-500' : 'text-gray-400'
+        }`}>
+          {dateLabel}
+        </div>
+        {renderEntries(dateEntries, type)}
+      </div>
+    ));
+  };
+
   const renderContent = () => {
     if (loading) {
       return (
@@ -617,7 +649,7 @@ const Budget = ({ theme }) => {
             </div>
           ) : (
             <div>
-              {renderEntries(incomes, 'income')}
+              {renderEntriesByDate(incomes, 'income')}
             </div>
           )}
         </>
@@ -829,8 +861,8 @@ const Budget = ({ theme }) => {
                   });
                 })()
               ) : (
-                // Normal list (default)
-                renderEntries(sortExpenses(expenses), 'expense')
+                // Normal list (default) - tarih gruplu
+                renderEntriesByDate(sortExpenses(expenses), 'expense')
               )}
             </div>
           )}
@@ -901,7 +933,7 @@ const Budget = ({ theme }) => {
             </p>
           </div>
         ) : (
-          renderEntries(allEntries, 'all')
+          renderEntriesByDate(allEntries, 'all')
         )}
       </div>
     );
