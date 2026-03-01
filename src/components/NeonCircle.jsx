@@ -1,7 +1,4 @@
-import { useTranslation } from 'react-i18next';
-
-const NeonCircle = ({ amount, theme, currencySymbol, isHidden, onToggleHidden }) => {
-  const { t } = useTranslation();
+const NeonCircle = ({ amount, theme, currencySymbol, isHidden, onToggleHidden, monthLabel }) => {
   const bars = Array.from({ length: 40 }, (_, i) => {
     const angle = (i * 360) / 40;
     const delay = Math.random() * 2;
@@ -50,7 +47,7 @@ const NeonCircle = ({ amount, theme, currencySymbol, isHidden, onToggleHidden })
         <h3 className={`text-lg font-semibold mb-3 ${
           theme === 'dark' ? 'text-zinc-400' : 'text-gray-500'
         }`}>
-          {t('yourBudget')}
+          {monthLabel}
         </h3>
         <button
           onClick={onToggleHidden}

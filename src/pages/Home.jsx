@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { calculateTotals, subscribeToTransactions, unsubscribe } from '../lib/database';
+import { calculateMonthlyTotals, subscribeToTransactions, unsubscribe } from '../lib/database';
 import NeonCircle from '../components/NeonCircle';
+
+const MONTH_NAMES_TR = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
 
 const Home = ({ theme, currency }) => {
   const { user } = useAuth();
   const [rates, setRates] = useState({ USD: 34.5 });
   const [isHidden, setIsHidden] = useState(false);
-  const [netAmount, setNetAmount] = useState(0);
+  const [monthlyTotals, setMonthlyTotals] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Exchange rates
@@ -31,20 +33,17 @@ const Home = ({ theme, currency }) => {
     fetchRates();
   }, []);
 
-  // Load totals from database
   useEffect(() => {
     if (user?.id) {
-      loadTotals();
+      loadMonthlyTotals();
     }
   }, [user?.id]);
 
-  // Realtime subscription
   useEffect(() => {
     if (!user?.id) return;
 
     const subscription = subscribeToTransactions(user.id, () => {
-      // Transaction değiştiğinde totals'ı yeniden hesapla
-      loadTotals();
+      loadMonthlyTotals();
     });
 
     return () => {
@@ -52,25 +51,29 @@ const Home = ({ theme, currency }) => {
     };
   }, [user?.id]);
 
-  const loadTotals = async () => {
+  const loadMonthlyTotals = async () => {
     setLoading(true);
-    const { data, error } = await calculateTotals(user.id);
-
-    if (error) {
-      console.error('Calculate totals error:', error);
-      setNetAmount(0);
-    } else {
-      setNetAmount(data?.netAmount || 0);
+    const { data, error } = await calculateMonthlyTotals(user.id);
+    if (!error && data) {
+      setMonthlyTotals(data);
     }
     setLoading(false);
   };
 
-  const getConvertedAmount = () => {
-    if (currency === 'TRY') return netAmount;
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+  const currentMonthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+  const currentMonthData = monthlyTotals.find(m => m.key === currentMonthKey);
+  const currentMonthNet = currentMonthData?.net ?? 0;
+  const pastMonths = monthlyTotals.filter(m => m.key < currentMonthKey);
+
+  const getConvertedNet = (net) => {
+    if (currency === 'TRY') return net;
     if (currency === 'USD' && rates.USD && !isNaN(rates.USD)) {
-      return netAmount / rates.USD;
+      return net / rates.USD;
     }
-    return netAmount;
+    return net;
   };
 
   const getCurrencySymbol = () => {
@@ -88,14 +91,44 @@ const Home = ({ theme, currency }) => {
   }
 
   return (
-    <div className="flex-1 flex items-start justify-center pt-[20vh] pb-32">
+    <div className="flex-1 flex flex-col items-center pt-[10vh] pb-32 px-4">
       <NeonCircle
-        amount={getConvertedAmount()}
+        amount={getConvertedNet(currentMonthNet)}
         theme={theme}
         currencySymbol={getCurrencySymbol()}
         isHidden={isHidden}
         onToggleHidden={() => setIsHidden(!isHidden)}
+        monthLabel={`${MONTH_NAMES_TR[currentMonth]} ${currentYear}`}
       />
+
+      {pastMonths.length > 0 && (
+        <div className="w-full max-w-sm mt-8 space-y-2">
+          {pastMonths.map(m => {
+            const converted = getConvertedNet(m.net);
+            const symbol = getCurrencySymbol();
+            const isPositive = converted >= 0;
+            return (
+              <div
+                key={m.key}
+                className={`flex items-center justify-between px-4 py-3 rounded-xl ${
+                  theme === 'dark'
+                    ? 'bg-zinc-900/40 border border-zinc-800/50'
+                    : 'bg-white/60 border border-gray-200/50'
+                }`}
+              >
+                <span className={`text-sm font-medium ${
+                  theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'
+                }`}>
+                  {MONTH_NAMES_TR[m.month]} {m.year}
+                </span>
+                <span className={`font-semibold text-sm ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
+                  {isPositive ? '' : '-'}{symbol}{Math.abs(converted).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

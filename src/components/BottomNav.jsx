@@ -10,7 +10,7 @@ const BottomNav = ({ theme }) => {
   const navItems = [
     { icon: Home, label: t('home'), path: '/home' },
     { icon: ArrowUpDown, label: t('incomeExpense'), path: '/budget' },
-    { icon: TrendingUp, label: t('investment'), path: '/investments' }
+    //{ icon: TrendingUp, label: t('investment'), path: '/investments' }
   ];
 
   return (

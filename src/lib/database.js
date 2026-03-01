@@ -246,6 +246,53 @@ export async function calculateTotals(userId) {
   }
 }
 
+/**
+ * Aylık gelir/gider toplamlarını hesapla
+ */
+export async function calculateMonthlyTotals(userId) {
+  try {
+    const { data: transactions, error } = await supabase
+      .from('transactions')
+      .select('type, amount, timestamp')
+      .eq('user_id', userId)
+      .order('timestamp', { ascending: false });
+
+    if (error) throw error;
+
+    const monthlyMap = {};
+    (transactions || []).forEach(t => {
+      const date = new Date(t.timestamp);
+      const localDate = new Date(date.getTime() + 3 * 60 * 60000);
+      const year = localDate.getUTCFullYear();
+      const month = localDate.getUTCMonth();
+      const key = `${year}-${String(month + 1).padStart(2, '0')}`;
+
+      if (!monthlyMap[key]) {
+        monthlyMap[key] = { year, month, income: 0, expense: 0 };
+      }
+      if (t.type === 'income') {
+        monthlyMap[key].income += parseFloat(t.amount);
+      } else {
+        monthlyMap[key].expense += parseFloat(t.amount);
+      }
+    });
+
+    const result = Object.values(monthlyMap)
+      .map(m => ({
+        year: m.year,
+        month: m.month,
+        net: m.income - m.expense,
+        key: `${m.year}-${String(m.month + 1).padStart(2, '0')}`
+      }))
+      .sort((a, b) => b.key.localeCompare(a.key));
+
+    return { data: result, error: null };
+  } catch (error) {
+    console.error('Calculate monthly totals error:', error);
+    return { data: null, error: error.message };
+  }
+}
+
 // =============================================
 // REALTIME SUBSCRIPTIONS
 // =============================================

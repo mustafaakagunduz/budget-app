@@ -1,6 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Minus, Trash2, Edit2, ChevronDown } from 'lucide-react';
+import { Plus, Minus, Trash2, Edit2, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+
+const MONTH_NAMES_TR = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
 import { useAuth } from '../contexts/AuthContext';
 import { getUserTransactions, getUserCategories, addTransaction, updateTransaction, deleteTransaction, subscribeToTransactions, unsubscribe } from '../lib/database';
 import GenericModal from '../components/GenericModal';
@@ -94,6 +96,44 @@ const Budget = ({ theme }) => {
   const [groupBy, setGroupBy] = useState('default');
   const [sortBy, setSortBy] = useState('default');
   const [expandedCategories, setExpandedCategories] = useState(new Set());
+
+  // Month navigation
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
+  const filteredIncomes = useMemo(() =>
+    incomes.filter(t => {
+      const d = new Date(new Date(t.timestamp).getTime() + 3 * 60 * 60000);
+      return d.getUTCFullYear() === selectedYear && d.getUTCMonth() === selectedMonth;
+    }),
+    [incomes, selectedMonth, selectedYear]
+  );
+
+  const filteredExpenses = useMemo(() =>
+    expenses.filter(t => {
+      const d = new Date(new Date(t.timestamp).getTime() + 3 * 60 * 60000);
+      return d.getUTCFullYear() === selectedYear && d.getUTCMonth() === selectedMonth;
+    }),
+    [expenses, selectedMonth, selectedYear]
+  );
+
+  const goToPrevMonth = () => {
+    if (selectedMonth === 0) {
+      setSelectedMonth(11);
+      setSelectedYear(y => y - 1);
+    } else {
+      setSelectedMonth(m => m - 1);
+    }
+  };
+
+  const goToNextMonth = () => {
+    if (selectedMonth === 11) {
+      setSelectedMonth(0);
+      setSelectedYear(y => y + 1);
+    } else {
+      setSelectedMonth(m => m + 1);
+    }
+  };
 
   // Context menu states
   const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, entry: null });
@@ -375,8 +415,8 @@ const Budget = ({ theme }) => {
 
   const getAllEntries = () => {
     const combined = [
-      ...incomes.map(item => ({ ...item, type: 'income' })),
-      ...expenses.map(item => ({ ...item, type: 'expense' }))
+      ...filteredIncomes.map(item => ({ ...item, type: 'income' })),
+      ...filteredExpenses.map(item => ({ ...item, type: 'expense' }))
     ];
     return combined.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   };
@@ -386,8 +426,8 @@ const Budget = ({ theme }) => {
   };
 
   const calculateNetAmount = () => {
-    const totalIncome = calculateTotal(incomes);
-    const totalExpense = calculateTotal(expenses);
+    const totalIncome = calculateTotal(filteredIncomes);
+    const totalExpense = calculateTotal(filteredExpenses);
 
     if (activeTab === 'income') return totalIncome;
     if (activeTab === 'expense') return totalExpense;
@@ -586,7 +626,7 @@ const Budget = ({ theme }) => {
     }
 
     if (activeTab === 'income') {
-      const hasIncomes = incomes.length > 0;
+      const hasIncomes = filteredIncomes.length > 0;
 
       return (
         <>
@@ -649,7 +689,7 @@ const Budget = ({ theme }) => {
             </div>
           ) : (
             <div>
-              {renderEntriesByDate(incomes, 'income')}
+              {renderEntriesByDate(filteredIncomes, 'income')}
             </div>
           )}
         </>
@@ -657,7 +697,7 @@ const Budget = ({ theme }) => {
     }
 
     if (activeTab === 'expense') {
-      const hasExpenses = expenses.length > 0;
+      const hasExpenses = filteredExpenses.length > 0;
 
       return (
         <>
@@ -754,7 +794,7 @@ const Budget = ({ theme }) => {
               {groupBy === 'paymentMethod' ? (
                 // Grouped by payment method - collapsible
                 (() => {
-                  const sorted = sortExpenses(expenses);
+                  const sorted = sortExpenses(filteredExpenses);
                   const totals = calculatePaymentMethodTotals(sorted);
                   return Object.keys(totals).map(categoryName => {
                     const categoryTotal = totals[categoryName];
@@ -808,7 +848,7 @@ const Budget = ({ theme }) => {
               ) : groupBy === 'expenseType' ? (
                 // Grouped by expense type (necessary / optional) - collapsible
                 (() => {
-                  const sorted = sortExpenses(expenses);
+                  const sorted = sortExpenses(filteredExpenses);
                   const totals = calculateExpenseTypeTotals(sorted);
                   const typeOrder = ['necessary', 'optional'];
                   return typeOrder.filter(type => totals[type] !== undefined).map(expenseType => {
@@ -862,7 +902,7 @@ const Budget = ({ theme }) => {
                 })()
               ) : (
                 // Normal list (default) - tarih gruplu
-                renderEntriesByDate(sortExpenses(expenses), 'expense')
+                renderEntriesByDate(sortExpenses(filteredExpenses), 'expense')
               )}
             </div>
           )}
@@ -973,6 +1013,37 @@ const Budget = ({ theme }) => {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Month Navigator */}
+      <div className={`flex items-center justify-between px-4 py-2.5 ${
+        theme === 'dark' ? 'border-b border-zinc-800/70' : 'border-b border-gray-200/70'
+      }`}>
+        <button
+          onClick={goToPrevMonth}
+          className={`p-2 rounded-full transition-colors ${
+            theme === 'dark'
+              ? 'text-zinc-400 hover:text-cyan-400 hover:bg-zinc-800/60'
+              : 'text-gray-500 hover:text-blue-600 hover:bg-gray-100'
+          }`}
+        >
+          <ChevronLeft size={20} />
+        </button>
+        <span className={`text-sm font-semibold tracking-wide ${
+          theme === 'dark' ? 'text-zinc-200' : 'text-gray-800'
+        }`}>
+          {MONTH_NAMES_TR[selectedMonth]} {selectedYear}
+        </span>
+        <button
+          onClick={goToNextMonth}
+          className={`p-2 rounded-full transition-colors ${
+            theme === 'dark'
+              ? 'text-zinc-400 hover:text-cyan-400 hover:bg-zinc-800/60'
+              : 'text-gray-500 hover:text-blue-600 hover:bg-gray-100'
+          }`}
+        >
+          <ChevronRight size={20} />
+        </button>
       </div>
 
       {/* Content Area */}
