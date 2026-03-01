@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Minus, Trash2, Edit2, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Minus, Trash2, Edit2, ChevronDown, ChevronLeft, ChevronRight, Layers } from 'lucide-react';
 
 const MONTH_NAMES_TR = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
 import { useAuth } from '../contexts/AuthContext';
@@ -75,6 +75,74 @@ const CustomDropdown = ({ value, onChange, options, placeholder, theme }) => {
   );
 };
 
+const IconDropdown = ({ value, onChange, options, theme }) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const isActive = value && value !== 'default';
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(prev => !prev)}
+        className={`relative p-2 rounded-lg border transition-colors ${
+          isActive
+            ? theme === 'dark'
+              ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400'
+              : 'bg-blue-50/80 border-blue-200 text-blue-600'
+            : theme === 'dark'
+              ? 'bg-zinc-800/40 border-zinc-700/40 text-zinc-400 hover:text-zinc-200'
+              : 'bg-gray-100/60 border-gray-200/80 text-gray-400 hover:text-gray-600'
+        }`}
+      >
+        <Layers size={22} />
+        {isActive && (
+          <span className={`absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full ${
+            theme === 'dark' ? 'bg-cyan-400' : 'bg-blue-500'
+          }`} />
+        )}
+      </button>
+      <div
+        className={`absolute z-[200] right-0 mt-1 w-44 rounded-xl border overflow-hidden transition-all duration-200 origin-top-right ${
+          open ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'
+        } ${
+          theme === 'dark'
+            ? 'bg-zinc-900 border-zinc-700/60 shadow-xl shadow-black/40'
+            : 'bg-white border-gray-200 shadow-xl shadow-black/10'
+        }`}
+      >
+        {options.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => { onChange(opt.value); setOpen(false); }}
+            className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
+              opt.value === value
+                ? theme === 'dark'
+                  ? 'bg-cyan-500/15 text-cyan-400 font-medium'
+                  : 'bg-blue-50 text-blue-600 font-medium'
+                : theme === 'dark'
+                  ? 'text-zinc-300 hover:bg-zinc-800'
+                  : 'text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const Budget = ({ theme }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -95,8 +163,7 @@ const Budget = ({ theme }) => {
   const [deleteError, setDeleteError] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [groupBy, setGroupBy] = useState('default');
-  const [sortBy, setSortBy] = useState('default');
-  const [expandedCategories, setExpandedCategories] = useState(new Set());
+const [expandedCategories, setExpandedCategories] = useState(new Set());
 
   // Month navigation
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
@@ -502,17 +569,7 @@ const Budget = ({ theme }) => {
     return expenses.filter(expense => (expense.expense_type || 'necessary') === expenseType);
   };
 
-  const sortExpenses = (list) => {
-    return [...list].sort((a, b) => {
-      if (sortBy === 'dateDesc') return new Date(b.created_at) - new Date(a.created_at);
-      if (sortBy === 'dateAsc') return new Date(a.created_at) - new Date(b.created_at);
-      if (sortBy === 'amountDesc') return parseFloat(b.amount) - parseFloat(a.amount);
-      if (sortBy === 'amountAsc') return parseFloat(a.amount) - parseFloat(b.amount);
-      return 0;
-    });
-  };
-
-  const renderEntries = (entries, type) => {
+const renderEntries = (entries, type) => {
     return entries.map((entry) => {
       const isSwipedOpen = swipedEntry === entry.id;
       const swipeOffset = isSwipedOpen ? -140 : 0;
@@ -634,7 +691,7 @@ const Budget = ({ theme }) => {
             {dateLabel}
             {isFuture && (
               <span className={`ml-2 normal-case font-medium ${
-                theme === 'dark' ? 'text-amber-400' : 'text-amber-600'
+                theme === 'dark' ? 'text-zinc-500' : 'text-gray-400'
               }`}>
                 ({t('futureDated')})
               </span>
@@ -733,17 +790,32 @@ const Budget = ({ theme }) => {
         <>
           {hasExpenses && (
             <>
-              <button
-                onClick={() => openModal('expense')}
-                className={`w-full py-3 mb-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 ${
-                  theme === 'dark'
-                    ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20'
-                    : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
-                }`}
-              >
-                <Minus size={20} />
-                {t('addExpense')}
-              </button>
+              <div className="flex items-center gap-2 mb-4">
+                <button
+                  onClick={() => openModal('expense')}
+                  className={`flex-1 py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 ${
+                    theme === 'dark'
+                      ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20'
+                      : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
+                  }`}
+                >
+                  <Minus size={20} />
+                  {t('addExpense')}
+                </button>
+                <IconDropdown
+                  theme={theme}
+                  value={groupBy}
+                  onChange={(val) => {
+                    setGroupBy(val);
+                    setExpandedCategories(new Set());
+                  }}
+                  options={[
+                    { value: 'default', label: t('groupByDefault') },
+                    { value: 'paymentMethod', label: t('groupByPaymentMethod') },
+                    { value: 'expenseType', label: t('groupByExpenseType') },
+                  ]}
+                />
+              </div>
 
               {/* Total Card */}
               <div className={`mb-4 p-4 rounded-xl backdrop-blur-sm border ${
@@ -761,37 +833,6 @@ const Budget = ({ theme }) => {
                     {calculateNetAmount().toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺
                   </span>
                 </div>
-              </div>
-
-              {/* Group By + Sort By Dropdowns */}
-              <div className="mb-4 flex gap-2">
-                <CustomDropdown
-                  theme={theme}
-                  value={groupBy === 'default' ? null : groupBy}
-                  placeholder={t('groupBy')}
-                  onChange={(val) => {
-                    setGroupBy(val);
-                    setExpandedCategories(new Set());
-                  }}
-                  options={[
-                    { value: 'default', label: t('groupByDefault') },
-                    { value: 'paymentMethod', label: t('groupByPaymentMethod') },
-                    { value: 'expenseType', label: t('groupByExpenseType') },
-                  ]}
-                />
-                <CustomDropdown
-                  theme={theme}
-                  value={sortBy === 'default' ? null : sortBy}
-                  placeholder={t('sortBy')}
-                  onChange={(val) => setSortBy(val)}
-                  options={[
-                    { value: 'default', label: t('groupByDefault') },
-                    { value: 'dateDesc', label: t('sortDateDesc') },
-                    { value: 'dateAsc', label: t('sortDateAsc') },
-                    { value: 'amountDesc', label: t('sortAmountDesc') },
-                    { value: 'amountAsc', label: t('sortAmountAsc') },
-                  ]}
-                />
               </div>
             </>
           )}
@@ -824,7 +865,7 @@ const Budget = ({ theme }) => {
               {groupBy === 'paymentMethod' ? (
                 // Grouped by payment method - collapsible
                 (() => {
-                  const sorted = sortExpenses(filteredExpenses);
+                  const sorted = filteredExpenses;
                   const totals = calculatePaymentMethodTotals(sorted);
                   return Object.keys(totals).map(categoryName => {
                     const categoryTotal = totals[categoryName];
@@ -878,7 +919,7 @@ const Budget = ({ theme }) => {
               ) : groupBy === 'expenseType' ? (
                 // Grouped by expense type (necessary / optional) - collapsible
                 (() => {
-                  const sorted = sortExpenses(filteredExpenses);
+                  const sorted = filteredExpenses;
                   const totals = calculateExpenseTypeTotals(sorted);
                   const typeOrder = ['necessary', 'optional'];
                   return typeOrder.filter(type => totals[type] !== undefined).map(expenseType => {
@@ -932,7 +973,7 @@ const Budget = ({ theme }) => {
                 })()
               ) : (
                 // Normal list (default) - tarih gruplu
-                renderEntriesByDate(sortExpenses(filteredExpenses), 'expense')
+                renderEntriesByDate(filteredExpenses, 'expense')
               )}
             </div>
           )}
