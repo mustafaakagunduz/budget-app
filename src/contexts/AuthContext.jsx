@@ -33,7 +33,13 @@ export const AuthProvider = ({ children }) => {
         // Bu durumda yerel oturumu temizleyip kullanıcıyı login ekranına düşürüyoruz.
         console.error('Auth check timed out, clearing stale session:', error);
         localStorage.removeItem('rememberToken');
-        await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+        // supabase.auth.signOut() bile aynı takılı kilide ihtiyaç duyup
+        // askıda kalabiliyor; bu yüzden onu beklemeden (fire-and-forget)
+        // çağırıp oturum anahtarlarını localStorage'dan doğrudan siliyoruz.
+        supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+        Object.keys(localStorage)
+          .filter((key) => key.startsWith('sb-'))
+          .forEach((key) => localStorage.removeItem(key));
         if (isMounted) {
           setUser(null);
         }
