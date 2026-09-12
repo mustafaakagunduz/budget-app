@@ -5,9 +5,9 @@ import { supabase } from './supabase';
 // =============================================
 
 const DEFAULT_PAYMENT_METHODS = [
-  { name: 'Nakit', color: '#22c55e', is_credit_card: false },
-  { name: 'Kredi Kartı', color: '#3b82f6', is_credit_card: true },
-  { name: 'Yemek Kartı', color: '#f97316', is_credit_card: false }
+  { name: 'Nakit', color: '#22c55e', is_credit_card: false, statement_day: null },
+  { name: 'Kredi Kartı', color: '#3b82f6', is_credit_card: true, statement_day: 1 },
+  { name: 'Yemek Kartı', color: '#f97316', is_credit_card: false, statement_day: null }
 ];
 
 /**
@@ -32,7 +32,8 @@ export async function getUserCategories(userId) {
             name: method.name,
             color: method.color,
             is_default: true,
-            is_credit_card: method.is_credit_card
+            is_credit_card: method.is_credit_card,
+            statement_day: method.statement_day
           }))
         );
 
@@ -58,7 +59,7 @@ export async function getUserCategories(userId) {
 /**
  * Yeni kategori ekle
  */
-export async function addCategory(userId, name, color, isCreditCard = false) {
+export async function addCategory(userId, name, color, isCreditCard = false, statementDay = null) {
   try {
     const { data, error } = await supabase
       .from('payment_methods')
@@ -67,7 +68,8 @@ export async function addCategory(userId, name, color, isCreditCard = false) {
         name,
         color,
         is_default: false,
-        is_credit_card: isCreditCard
+        is_credit_card: isCreditCard,
+        statement_day: isCreditCard ? statementDay : null
       })
       .select()
       .single();

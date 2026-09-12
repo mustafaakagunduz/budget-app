@@ -305,9 +305,12 @@ const [expandedCategories, setExpandedCategories] = useState(new Set());
     return new Date(base.getTime() + gmt3Offset).toISOString();
   };
 
-  // Kredi kartıyla yapılan giderler bir sonraki ayın giderlerine dahil olsun
-  const isCreditCardPayment = (categoryName) =>
-    !!categories.find((c) => c.name === categoryName)?.is_credit_card;
+  // Kredi kartı ile yapılan, ekstre kesim gününden sonraki giderler
+  // bir sonraki ayın kredi kartı borcuna dahil olsun
+  const getCreditCardCutoff = (categoryName) => {
+    const category = categories.find((c) => c.name === categoryName);
+    return category?.is_credit_card ? (category.statement_day || 1) : null;
+  };
 
   const shiftDateByMonths = (dateStr, delta) => {
     const [year, month, day] = dateStr.split('-').map(Number);
@@ -315,13 +318,21 @@ const [expandedCategories, setExpandedCategories] = useState(new Set());
     return shifted.toISOString().slice(0, 10);
   };
 
-  const resolveExpenseDate = (categoryName, dateStr) =>
-    isCreditCardPayment(categoryName) ? shiftDateByMonths(dateStr, 1) : dateStr;
+  // Gün, ay değişse de aynı kalır (shiftDateByMonths sadece ayı kaydırır),
+  // bu yüzden geri alma da aynı kesim günü kontrolüyle yapılabilir
+  const resolveExpenseDate = (categoryName, dateStr) => {
+    const cutoff = getCreditCardCutoff(categoryName);
+    if (cutoff === null) return dateStr;
+    const day = Number(dateStr.split('-')[2]);
+    return day > cutoff ? shiftDateByMonths(dateStr, 1) : dateStr;
+  };
 
-  // Kayıt zaten kredi kartı için bir ay ileri kaydırılmış olarak saklanıyor;
-  // formda kullanıcının seçtiği asıl tarihi göstermek için geri al
-  const unresolveExpenseDate = (categoryName, dateStr) =>
-    isCreditCardPayment(categoryName) ? shiftDateByMonths(dateStr, -1) : dateStr;
+  const unresolveExpenseDate = (categoryName, dateStr) => {
+    const cutoff = getCreditCardCutoff(categoryName);
+    if (cutoff === null) return dateStr;
+    const day = Number(dateStr.split('-')[2]);
+    return day > cutoff ? shiftDateByMonths(dateStr, -1) : dateStr;
+  };
 
   const openModal = (type, entry = null) => {
     setModalType(type);

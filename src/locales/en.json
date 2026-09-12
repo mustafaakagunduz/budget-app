@@ -35,6 +35,8 @@
   "isCreditCard": "This is a credit card",
   "isCreditCardHint": "Expenses paid with a credit card are automatically added to next month",
   "creditCardBadge": "Credit Card",
+  "statementDay": "Statement Closing Day",
+  "statementDayHint": "Expenses made after this day are included in next month's credit card bill",
   "category": "Category",
   "categoryName": "Category Name",
   "addCategory": "Add Category",

@@ -24,6 +24,7 @@ const PaymentMethods = ({ theme }) => {
   const [categoryName, setCategoryName] = useState('');
   const [selectedColor, setSelectedColor] = useState(COLORS[0].value);
   const [isCreditCard, setIsCreditCard] = useState(false);
+  const [statementDay, setStatementDay] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [editingCategory, setEditingCategory] = useState(null);
@@ -100,10 +101,12 @@ const PaymentMethods = ({ theme }) => {
       setCategoryName(category.name);
       setSelectedColor(category.color || COLORS[0].value);
       setIsCreditCard(!!category.is_credit_card);
+      setStatementDay(category.statement_day ? String(category.statement_day) : '');
     } else {
       setCategoryName('');
       setSelectedColor(COLORS[0].value);
       setIsCreditCard(false);
+      setStatementDay('');
     }
 
     setIsModalOpen(true);
@@ -114,6 +117,7 @@ const PaymentMethods = ({ theme }) => {
     setCategoryName('');
     setSelectedColor(COLORS[0].value);
     setIsCreditCard(false);
+    setStatementDay('');
     setError('');
     setEditingCategory(null);
   };
@@ -134,11 +138,18 @@ const PaymentMethods = ({ theme }) => {
       return;
     }
 
+    const parsedStatementDay = statementDay ? parseInt(statementDay, 10) : null;
+    if (isCreditCard && (!parsedStatementDay || parsedStatementDay < 1 || parsedStatementDay > 31)) {
+      setError('Ekstre kesim günü 1-31 arasında olmalı');
+      return;
+    }
+
     if (editingCategory) {
       const { error } = await updateCategory(editingCategory.id, {
         name: categoryName.trim(),
         color: selectedColor,
-        is_credit_card: isCreditCard
+        is_credit_card: isCreditCard,
+        statement_day: isCreditCard ? parsedStatementDay : null
       });
 
       if (error) {
@@ -149,7 +160,7 @@ const PaymentMethods = ({ theme }) => {
         await loadCategories();
       }
     } else {
-      const { error } = await addCategory(user.id, categoryName.trim(), selectedColor, isCreditCard);
+      const { error } = await addCategory(user.id, categoryName.trim(), selectedColor, isCreditCard, parsedStatementDay);
 
       if (error) {
         setError('Ödeme yöntemi eklenemedi');
@@ -365,7 +376,7 @@ const PaymentMethods = ({ theme }) => {
                       <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${
                         theme === 'dark' ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-100 text-blue-700'
                       }`}>
-                        {t('creditCardBadge')}
+                        {t('creditCardBadge')}{category.statement_day ? ` · ${category.statement_day}` : ''}
                       </span>
                     )}
                   </div>
@@ -492,6 +503,34 @@ const PaymentMethods = ({ theme }) => {
               {t('isCreditCardHint')}
             </p>
           </div>
+
+          {isCreditCard && (
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${
+                theme === 'dark' ? 'text-zinc-400' : 'text-gray-600'
+              }`}>
+                {t('statementDay')}
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="31"
+                value={statementDay}
+                onChange={(e) => setStatementDay(e.target.value)}
+                placeholder="Örn: 5"
+                className={`w-full px-3 py-2 rounded-lg border ${
+                  theme === 'dark'
+                    ? 'bg-zinc-800 border-zinc-700 text-white'
+                    : 'bg-white border-gray-300 text-gray-900'
+                } focus:outline-none focus:ring-2 focus:ring-cyan-400`}
+              />
+              <p className={`mt-1 text-xs ${
+                theme === 'dark' ? 'text-zinc-500' : 'text-gray-400'
+              }`}>
+                {t('statementDayHint')}
+              </p>
+            </div>
+          )}
 
           <div className="flex gap-3 pt-4">
             <button

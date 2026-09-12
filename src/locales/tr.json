@@ -35,6 +35,8 @@
   "isCreditCard": "Bu bir kredi kartı",
   "isCreditCardHint": "Kredi kartıyla yapılan giderler otomatik olarak bir sonraki aya eklenir",
   "creditCardBadge": "Kredi Kartı",
+  "statementDay": "Ekstre Kesim Günü",
+  "statementDayHint": "Bu günden sonraki harcamalar bir sonraki ayın kredi kartı borcuna dahil edilir",
   "category": "Kategori",
   "categoryName": "Kategori Adı",
   "addCategory": "Kategori Ekle",
