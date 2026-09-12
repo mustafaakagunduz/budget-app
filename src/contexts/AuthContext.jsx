@@ -22,7 +22,22 @@ export const AuthProvider = ({ children }) => {
 
     const init = async () => {
       setLoading(true);
-      await checkUser();
+      try {
+        await Promise.race([
+          checkUser(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('auth-check-timeout')), 8000))
+        ]);
+      } catch (error) {
+        // getSession() bazı durumlarda (bozuk/eski refresh token, tarayıcı
+        // sekmeler arası kilit takılması) hiç sonuçlanmadan askıda kalabiliyor.
+        // Bu durumda yerel oturumu temizleyip kullanıcıyı login ekranına düşürüyoruz.
+        console.error('Auth check timed out, clearing stale session:', error);
+        localStorage.removeItem('rememberToken');
+        await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+        if (isMounted) {
+          setUser(null);
+        }
+      }
       if (isMounted) {
         setLoading(false);
       }
