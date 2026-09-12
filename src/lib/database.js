@@ -257,16 +257,38 @@ export async function calculateMonthlyTotals(userId) {
   try {
     const { data: transactions, error } = await supabase
       .from('transactions')
-      .select('type, amount, timestamp')
+      .select('type, amount, timestamp, category')
       .eq('user_id', userId)
       .order('timestamp', { ascending: false });
 
     if (error) throw error;
 
+    const { data: paymentMethods, error: paymentMethodsError } = await supabase
+      .from('payment_methods')
+      .select('name, is_credit_card, statement_day')
+      .eq('user_id', userId);
+
+    if (paymentMethodsError) throw paymentMethodsError;
+
+    const creditCardCutoffByName = {};
+    (paymentMethods || []).forEach((method) => {
+      if (method.is_credit_card) {
+        creditCardCutoffByName[method.name] = method.statement_day || 1;
+      }
+    });
+
     const monthlyMap = {};
     (transactions || []).forEach(t => {
       const date = new Date(t.timestamp);
       const localDate = new Date(date.getTime() + 3 * 60 * 60000);
+
+      // Kredi kartı ile yapılan, ekstre kesim gününden sonraki giderler
+      // bir sonraki ayın toplamına dahil edilir
+      const cutoff = t.type === 'expense' ? creditCardCutoffByName[t.category] : undefined;
+      if (cutoff !== undefined && localDate.getUTCDate() > cutoff) {
+        localDate.setUTCMonth(localDate.getUTCMonth() + 1);
+      }
+
       const year = localDate.getUTCFullYear();
       const month = localDate.getUTCMonth();
       const key = `${year}-${String(month + 1).padStart(2, '0')}`;
