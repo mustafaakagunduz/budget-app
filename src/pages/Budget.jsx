@@ -177,12 +177,27 @@ const [expandedCategories, setExpandedCategories] = useState(new Set());
     [incomes, selectedMonth, selectedYear]
   );
 
+  // Kredi kartı harcamaları, ekstre kesim gününden sonraysa bir sonraki ayın
+  // sekmesinde gösterilir (gerçek harcama tarihi değişmez, sadece hangi ay
+  // sekmesine dahil olduğu hesaplanır)
+  const getExpenseBucketDate = (expense) => {
+    const localDate = new Date(new Date(expense.timestamp).getTime() + 3 * 60 * 60000);
+    const category = categories.find((c) => c.name === expense.category);
+    if (category?.is_credit_card) {
+      const cutoff = category.statement_day || 1;
+      if (localDate.getUTCDate() > cutoff) {
+        localDate.setUTCMonth(localDate.getUTCMonth() + 1);
+      }
+    }
+    return localDate;
+  };
+
   const filteredExpenses = useMemo(() =>
     expenses.filter(t => {
-      const d = new Date(new Date(t.timestamp).getTime() + 3 * 60 * 60000);
+      const d = getExpenseBucketDate(t);
       return d.getUTCFullYear() === selectedYear && d.getUTCMonth() === selectedMonth;
     }),
-    [expenses, selectedMonth, selectedYear]
+    [expenses, selectedMonth, selectedYear, categories]
   );
 
   const goToPrevMonth = () => {
@@ -305,35 +320,6 @@ const [expandedCategories, setExpandedCategories] = useState(new Set());
     return new Date(base.getTime() + gmt3Offset).toISOString();
   };
 
-  // Kredi kartı ile yapılan, ekstre kesim gününden sonraki giderler
-  // bir sonraki ayın kredi kartı borcuna dahil olsun
-  const getCreditCardCutoff = (categoryName) => {
-    const category = categories.find((c) => c.name === categoryName);
-    return category?.is_credit_card ? (category.statement_day || 1) : null;
-  };
-
-  const shiftDateByMonths = (dateStr, delta) => {
-    const [year, month, day] = dateStr.split('-').map(Number);
-    const shifted = new Date(Date.UTC(year, month - 1 + delta, day));
-    return shifted.toISOString().slice(0, 10);
-  };
-
-  // Gün, ay değişse de aynı kalır (shiftDateByMonths sadece ayı kaydırır),
-  // bu yüzden geri alma da aynı kesim günü kontrolüyle yapılabilir
-  const resolveExpenseDate = (categoryName, dateStr) => {
-    const cutoff = getCreditCardCutoff(categoryName);
-    if (cutoff === null) return dateStr;
-    const day = Number(dateStr.split('-')[2]);
-    return day > cutoff ? shiftDateByMonths(dateStr, 1) : dateStr;
-  };
-
-  const unresolveExpenseDate = (categoryName, dateStr) => {
-    const cutoff = getCreditCardCutoff(categoryName);
-    if (cutoff === null) return dateStr;
-    const day = Number(dateStr.split('-')[2]);
-    return day > cutoff ? shiftDateByMonths(dateStr, -1) : dateStr;
-  };
-
   const openModal = (type, entry = null) => {
     setModalType(type);
     setEditingEntry(entry);
@@ -344,7 +330,7 @@ const [expandedCategories, setExpandedCategories] = useState(new Set());
       setFormAmount(entry.amount.toString());
       setFormCategory(entry.category || '');
       setFormExpenseType(entry.expense_type || 'necessary');
-      setFormDate(unresolveExpenseDate(entry.category, getDateStrFromTimestamp(entry.timestamp)));
+      setFormDate(getDateStrFromTimestamp(entry.timestamp));
     } else {
       // Yeni ekleme modu
       setFormTitle('');
@@ -398,9 +384,7 @@ const [expandedCategories, setExpandedCategories] = useState(new Set());
         amount: parseFloat(formAmount),
         category: modalType === 'expense' ? formCategory : null,
         expense_type: modalType === 'expense' ? formExpenseType : null,
-        timestamp: buildTimestampFromDate(
-          modalType === 'expense' ? resolveExpenseDate(formCategory, formDate) : formDate
-        )
+        timestamp: buildTimestampFromDate(formDate)
       };
 
       const { error } = await updateTransaction(editingEntry.id, updates);
@@ -422,9 +406,7 @@ const [expandedCategories, setExpandedCategories] = useState(new Set());
         parseFloat(formAmount),
         modalType === 'expense' ? formCategory : null,
         modalType === 'expense' ? formExpenseType : null,
-        buildTimestampFromDate(
-          modalType === 'expense' ? resolveExpenseDate(formCategory, formDate) : formDate
-        )
+        buildTimestampFromDate(formDate)
       );
 
       if (error) {
