@@ -5,9 +5,9 @@ import { supabase } from './supabase';
 // =============================================
 
 const DEFAULT_PAYMENT_METHODS = [
-  { name: 'Nakit', color: '#22c55e' },
-  { name: 'Kredi Kartı', color: '#3b82f6' },
-  { name: 'Yemek Kartı', color: '#f97316' }
+  { name: 'Nakit', color: '#22c55e', is_credit_card: false },
+  { name: 'Kredi Kartı', color: '#3b82f6', is_credit_card: true },
+  { name: 'Yemek Kartı', color: '#f97316', is_credit_card: false }
 ];
 
 /**
@@ -31,7 +31,8 @@ export async function getUserCategories(userId) {
             user_id: userId,
             name: method.name,
             color: method.color,
-            is_default: true
+            is_default: true,
+            is_credit_card: method.is_credit_card
           }))
         );
 
@@ -57,7 +58,7 @@ export async function getUserCategories(userId) {
 /**
  * Yeni kategori ekle
  */
-export async function addCategory(userId, name, color) {
+export async function addCategory(userId, name, color, isCreditCard = false) {
   try {
     const { data, error } = await supabase
       .from('payment_methods')
@@ -65,7 +66,8 @@ export async function addCategory(userId, name, color) {
         user_id: userId,
         name,
         color,
-        is_default: false
+        is_default: false,
+        is_credit_card: isCreditCard
       })
       .select()
       .single();

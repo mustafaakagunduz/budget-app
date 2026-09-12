@@ -305,6 +305,24 @@ const [expandedCategories, setExpandedCategories] = useState(new Set());
     return new Date(base.getTime() + gmt3Offset).toISOString();
   };
 
+  // Kredi kartıyla yapılan giderler bir sonraki ayın giderlerine dahil olsun
+  const isCreditCardPayment = (categoryName) =>
+    !!categories.find((c) => c.name === categoryName)?.is_credit_card;
+
+  const shiftDateByMonths = (dateStr, delta) => {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const shifted = new Date(Date.UTC(year, month - 1 + delta, day));
+    return shifted.toISOString().slice(0, 10);
+  };
+
+  const resolveExpenseDate = (categoryName, dateStr) =>
+    isCreditCardPayment(categoryName) ? shiftDateByMonths(dateStr, 1) : dateStr;
+
+  // Kayıt zaten kredi kartı için bir ay ileri kaydırılmış olarak saklanıyor;
+  // formda kullanıcının seçtiği asıl tarihi göstermek için geri al
+  const unresolveExpenseDate = (categoryName, dateStr) =>
+    isCreditCardPayment(categoryName) ? shiftDateByMonths(dateStr, -1) : dateStr;
+
   const openModal = (type, entry = null) => {
     setModalType(type);
     setEditingEntry(entry);
@@ -315,7 +333,7 @@ const [expandedCategories, setExpandedCategories] = useState(new Set());
       setFormAmount(entry.amount.toString());
       setFormCategory(entry.category || '');
       setFormExpenseType(entry.expense_type || 'necessary');
-      setFormDate(getDateStrFromTimestamp(entry.timestamp));
+      setFormDate(unresolveExpenseDate(entry.category, getDateStrFromTimestamp(entry.timestamp)));
     } else {
       // Yeni ekleme modu
       setFormTitle('');
@@ -369,7 +387,9 @@ const [expandedCategories, setExpandedCategories] = useState(new Set());
         amount: parseFloat(formAmount),
         category: modalType === 'expense' ? formCategory : null,
         expense_type: modalType === 'expense' ? formExpenseType : null,
-        timestamp: buildTimestampFromDate(formDate)
+        timestamp: buildTimestampFromDate(
+          modalType === 'expense' ? resolveExpenseDate(formCategory, formDate) : formDate
+        )
       };
 
       const { error } = await updateTransaction(editingEntry.id, updates);
@@ -391,7 +411,9 @@ const [expandedCategories, setExpandedCategories] = useState(new Set());
         parseFloat(formAmount),
         modalType === 'expense' ? formCategory : null,
         modalType === 'expense' ? formExpenseType : null,
-        buildTimestampFromDate(formDate)
+        buildTimestampFromDate(
+          modalType === 'expense' ? resolveExpenseDate(formCategory, formDate) : formDate
+        )
       );
 
       if (error) {

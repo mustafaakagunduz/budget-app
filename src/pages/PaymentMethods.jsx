@@ -23,6 +23,7 @@ const PaymentMethods = ({ theme }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [categoryName, setCategoryName] = useState('');
   const [selectedColor, setSelectedColor] = useState(COLORS[0].value);
+  const [isCreditCard, setIsCreditCard] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [editingCategory, setEditingCategory] = useState(null);
@@ -98,9 +99,11 @@ const PaymentMethods = ({ theme }) => {
     if (category) {
       setCategoryName(category.name);
       setSelectedColor(category.color || COLORS[0].value);
+      setIsCreditCard(!!category.is_credit_card);
     } else {
       setCategoryName('');
       setSelectedColor(COLORS[0].value);
+      setIsCreditCard(false);
     }
 
     setIsModalOpen(true);
@@ -110,6 +113,7 @@ const PaymentMethods = ({ theme }) => {
     setIsModalOpen(false);
     setCategoryName('');
     setSelectedColor(COLORS[0].value);
+    setIsCreditCard(false);
     setError('');
     setEditingCategory(null);
   };
@@ -133,7 +137,8 @@ const PaymentMethods = ({ theme }) => {
     if (editingCategory) {
       const { error } = await updateCategory(editingCategory.id, {
         name: categoryName.trim(),
-        color: selectedColor
+        color: selectedColor,
+        is_credit_card: isCreditCard
       });
 
       if (error) {
@@ -144,7 +149,7 @@ const PaymentMethods = ({ theme }) => {
         await loadCategories();
       }
     } else {
-      const { error } = await addCategory(user.id, categoryName.trim(), selectedColor);
+      const { error } = await addCategory(user.id, categoryName.trim(), selectedColor, isCreditCard);
 
       if (error) {
         setError('Ödeme yöntemi eklenemedi');
@@ -356,6 +361,13 @@ const PaymentMethods = ({ theme }) => {
                         (Varsayılan)
                       </span>
                     )}
+                    {category.is_credit_card && (
+                      <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${
+                        theme === 'dark' ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-100 text-blue-700'
+                      }`}>
+                        {t('creditCardBadge')}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -458,6 +470,27 @@ const PaymentMethods = ({ theme }) => {
                 />
               ))}
             </div>
+          </div>
+
+          <div>
+            <label className={`flex items-center gap-3 cursor-pointer select-none`}>
+              <input
+                type="checkbox"
+                checked={isCreditCard}
+                onChange={(e) => setIsCreditCard(e.target.checked)}
+                className="w-5 h-5 rounded accent-cyan-400"
+              />
+              <span className={`text-sm font-medium ${
+                theme === 'dark' ? 'text-zinc-300' : 'text-gray-700'
+              }`}>
+                {t('isCreditCard')}
+              </span>
+            </label>
+            <p className={`mt-1 text-xs ${
+              theme === 'dark' ? 'text-zinc-500' : 'text-gray-400'
+            }`}>
+              {t('isCreditCardHint')}
+            </p>
           </div>
 
           <div className="flex gap-3 pt-4">
